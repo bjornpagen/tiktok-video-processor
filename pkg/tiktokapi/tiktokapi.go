@@ -3,7 +3,7 @@ package tiktokapi
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -86,7 +86,7 @@ func (t *TikTokAPI) GetVideoURL(tiktokURL string) (string, error) {
 	}
 
 	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
+	body, _ := io.ReadAll(res.Body)
 
 	var response TikTokResponse
 	err = json.Unmarshal(body, &response)
