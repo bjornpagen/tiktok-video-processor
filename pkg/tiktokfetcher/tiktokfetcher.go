@@ -22,37 +22,37 @@ func New(apiKey string) *TikTokFetcher {
 	}
 }
 
-type TikTokFetcherResponse struct {
-	Code          int                `json:"code"`
-	Msg           string             `json:"msg"`
-	ProcessedTime float64            `json:"processed_time"`
-	Data          *TikTokFetcherData `json:"data,omitempty"`
+type Response struct {
+	Code          int     `json:"code"`
+	Msg           string  `json:"msg"`
+	ProcessedTime float64 `json:"processed_time"`
+	Data          *Data   `json:"data,omitempty"`
 }
 
-type TikTokFetcherData struct {
-	AwemeID       string                 `json:"aweme_id"`
-	ID            string                 `json:"id"`
-	Region        string                 `json:"region"`
-	Title         string                 `json:"title"`
-	Cover         string                 `json:"cover"`
-	OriginCover   string                 `json:"origin_cover"`
-	Duration      int                    `json:"duration"`
-	Play          string                 `json:"play"`
-	WmPlay        string                 `json:"wmplay"`
-	Size          int                    `json:"size"`
-	WmSize        int                    `json:"wm_size"`
-	Music         string                 `json:"music"`
-	MusicInfo     TikTokFetcherMusicInfo `json:"music_info"`
-	PlayCount     int                    `json:"play_count"`
-	DiggCount     int                    `json:"digg_count"`
-	CommentCount  int                    `json:"comment_count"`
-	ShareCount    int                    `json:"share_count"`
-	DownloadCount int                    `json:"download_count"`
-	CreateTime    int64                  `json:"create_time"`
-	Author        TikTokFetcherAuthor    `json:"author"`
+type Data struct {
+	AwemeID       string    `json:"aweme_id"`
+	ID            string    `json:"id"`
+	Region        string    `json:"region"`
+	Title         string    `json:"title"`
+	Cover         string    `json:"cover"`
+	OriginCover   string    `json:"origin_cover"`
+	Duration      int       `json:"duration"`
+	Play          string    `json:"play"`
+	WmPlay        string    `json:"wmplay"`
+	Size          int       `json:"size"`
+	WmSize        int       `json:"wm_size"`
+	Music         string    `json:"music"`
+	MusicInfo     MusicInfo `json:"music_info"`
+	PlayCount     int       `json:"play_count"`
+	DiggCount     int       `json:"digg_count"`
+	CommentCount  int       `json:"comment_count"`
+	ShareCount    int       `json:"share_count"`
+	DownloadCount int       `json:"download_count"`
+	CreateTime    int64     `json:"create_time"`
+	Author        Author    `json:"author"`
 }
 
-type TikTokFetcherMusicInfo struct {
+type MusicInfo struct {
 	ID       string `json:"id"`
 	Title    string `json:"title"`
 	Play     string `json:"play"`
@@ -63,7 +63,7 @@ type TikTokFetcherMusicInfo struct {
 	Album    string `json:"album"`
 }
 
-type TikTokFetcherAuthor struct {
+type Author struct {
 	ID       string `json:"id"`
 	UniqueID string `json:"unique_id"`
 	Nickname string `json:"nickname"`
@@ -88,7 +88,7 @@ func (t *TikTokFetcher) GetVideoURL(tiktokURL string) (string, error) {
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
 
-	var response TikTokFetcherResponse
+	var response Response
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		return "", err

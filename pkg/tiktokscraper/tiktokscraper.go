@@ -19,7 +19,7 @@ func New(apiKey string) *TikTokScraper {
 	return &TikTokScraper{
 		APIHost:   "tiktok-best-experience.p.rapidapi.com",
 		APIKey:    apiKey,
-		RateLimit: 20 * time.Millisecond,
+		RateLimit: 2000 * time.Millisecond,
 	}
 }
 
@@ -223,10 +223,10 @@ func (t *TikTokScraper) FetchUserFeedData(username string, maxCursor int64) (*Da
 	var response Response
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error unmarshaling JSON response: %w", err)
 	}
 
-	if response.Status != "success" {
+	if response.Status != "ok" {
 		return nil, errors.New("failed to fetch user feed")
 	}
 
