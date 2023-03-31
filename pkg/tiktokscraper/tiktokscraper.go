@@ -4,31 +4,120 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
-	"time"
+
+	"go.uber.org/ratelimit"
 )
 
-type TikTokScraper struct {
-	APIHost   string
-	APIKey    string
-	RateLimit time.Duration
+type Client struct {
+	APIHost    string
+	APIKey     string
+	RateLimit  ratelimit.Limiter
+	HttpClient *http.Client
 }
 
-func New(apiKey string) *TikTokScraper {
-	return &TikTokScraper{
+func New(apiKey string) *Client {
+	return &Client{
 		APIHost:   "tiktok-best-experience.p.rapidapi.com",
 		APIKey:    apiKey,
-		RateLimit: 2000 * time.Millisecond,
+		RateLimit: ratelimit.New(50),
+		HttpClient: &http.Client{
+			Timeout: 10,
+		},
 	}
 }
 
-type Response struct {
-	Status string `json:"status"`
-	Data   Data   `json:"data"`
+type UserDataResponse struct {
+	Status string     `json:"status"`
+	Data   UserLookup `json:"data"`
 }
 
-type Data struct {
+type UserLookup struct {
+	StatusCode int  `json:"status_code"`
+	User       User `json:"user"`
+}
+
+type User struct {
+	AccountType            int              `json:"account_type"`
+	Avatar168x168          Avatar           `json:"avatar_168x168"`
+	Avatar300x300          Avatar           `json:"avatar_300x300"`
+	AvatarLarger           Avatar           `json:"avatar_larger"`
+	AvatarMedium           Avatar           `json:"avatar_medium"`
+	AvatarThumb            Avatar           `json:"avatar_thumb"`
+	AwemeCount             int              `json:"aweme_count"`
+	BioSecureURL           string           `json:"bio_secure_url"`
+	BioURL                 string           `json:"bio_url"`
+	CommerceUserInfo       CommerceUserInfo `json:"commerce_user_info"`
+	EnterpriseVerifyReason string           `json:"enterprise_verify_reason"`
+	FollowerCount          int              `json:"follower_count"`
+	FollowingCount         int              `json:"following_count"`
+	InsID                  string           `json:"ins_id"`
+	Nickname               string           `json:"nickname"`
+	OriginalMusician       OriginalMusician `json:"original_musician"`
+	PrivacySetting         PrivacySetting   `json:"privacy_setting"`
+	SecUID                 string           `json:"sec_uid"`
+	ShareInfo              DataShareInfo    `json:"share_info"`
+	ShortID                string           `json:"short_id"`
+	SignatureLanguage      string           `json:"signature_language"`
+	TabSettings            TabSettings      `json:"tab_settings"`
+	TotalFavorited         int              `json:"total_favorited"`
+	UID                    string           `json:"uid"`
+	UniqueID               string           `json:"unique_id"`
+	VideoIcon              VideoIcon        `json:"video_icon"`
+}
+
+type Avatar struct {
+	URI     string   `json:"uri"`
+	URLList []string `json:"url_list"`
+}
+
+type CommerceUserInfo struct {
+	AdExperienceEntry bool     `json:"ad_experience_entry"`
+	AdExperienceText  string   `json:"ad_experience_text"`
+	AdRevenueRits     []string `json:"ad_revenue_rits"`
+}
+
+type OriginalMusician struct {
+	DiggCount      int `json:"digg_count"`
+	MusicCount     int `json:"music_count"`
+	MusicUsedCount int `json:"music_used_count"`
+}
+
+type PrivacySetting struct {
+	FollowingVisibility int `json:"following_visibility"`
+}
+
+type DataShareInfo struct {
+	ShareURL         string `json:"share_url"`
+	ShareDesc        string `json:"share_desc"`
+	ShareTitle       string `json:"share_title"`
+	BoolPersist      int    `json:"bool_persist"`
+	ShareTitleMyself string `json:"share_title_myself"`
+	ShareTitleOther  string `json:"share_title_other"`
+	ShareDescInfo    string `json:"share_desc_info"`
+}
+
+type TabSettings struct {
+	PrivateTab PrivateTab `json:"private_tab"`
+}
+
+type PrivateTab struct {
+	PrivateTabStyle int  `json:"private_tab_style"`
+	ShowPrivateTab  bool `json:"show_private_tab"`
+}
+
+type VideoIcon struct {
+	URI     string   `json:"uri"`
+	URLList []string `json:"url_list"`
+}
+
+type UserFeedResponse struct {
+	Status string    `json:"status"`
+	Data   FeedChunk `json:"data"`
+}
+
+type FeedChunk struct {
 	MinCursor int64   `json:"min_cursor"`
 	MaxCursor int64   `json:"max_cursor"`
 	HasMore   int     `json:"has_more"`
@@ -195,8 +284,88 @@ type Image struct {
 	Height  int      `json:"height"`
 }
 
-func (t *TikTokScraper) FetchUserFeedData(username string, maxCursor int64) (*Data, error) {
-	url := fmt.Sprintf("https://%s/user/%s/feed", t.APIHost, username)
+func (t *Client) FetchUserData(userId string) (*User, error) {
+	url := fmt.Sprintf("https://%s/user/id/%s", t.APIHost, userId)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("X-RapidAPI-Key", t.APIKey)
+	req.Header.Add("X-RapidAPI-Host", t.APIHost)
+
+	t.RateLimit.Take()
+	res, err := t.HttpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response UserDataResponse
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling JSON response: %w", err)
+	}
+
+	if response.Status != "ok" {
+		return nil, errors.New("endpoint failed to return ok status")
+	}
+
+	if response.Data.StatusCode != 0 {
+		return nil, errors.New("endpoint failed to find user")
+	}
+
+	return &response.Data.User, nil
+}
+
+func (t *Client) FetchUserId(username string) (string, error) {
+	url := fmt.Sprintf("https://%s/user/%s", t.APIHost, username)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("X-RapidAPI-Key", t.APIKey)
+	req.Header.Add("X-RapidAPI-Host", t.APIHost)
+
+	t.RateLimit.Take()
+	res, err := t.HttpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var response UserDataResponse
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return "", fmt.Errorf("error unmarshaling JSON response: %w", err)
+	}
+
+	if response.Status != "ok" {
+		return "", errors.New("endpoint failed to return ok status")
+	}
+
+	if response.Data.StatusCode != 0 {
+		return "", errors.New("endpoint failed to find user")
+	}
+
+	return response.Data.User.UID, nil
+}
+
+func (t *Client) FetchUserFeed(userId string, maxCursor int64) (*FeedChunk, error) {
+	url := fmt.Sprintf("https://%s/user/id/%s/feed", t.APIHost, userId)
 	if maxCursor > 0 {
 		url = fmt.Sprintf("%s?max_cursor=%d", url, maxCursor)
 	}
@@ -209,18 +378,19 @@ func (t *TikTokScraper) FetchUserFeedData(username string, maxCursor int64) (*Da
 	req.Header.Add("X-RapidAPI-Key", t.APIKey)
 	req.Header.Add("X-RapidAPI-Host", t.APIHost)
 
-	res, err := http.DefaultClient.Do(req)
+	t.RateLimit.Take()
+	res, err := t.HttpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	var response Response
+	var response UserFeedResponse
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling JSON response: %w", err)
@@ -233,12 +403,12 @@ func (t *TikTokScraper) FetchUserFeedData(username string, maxCursor int64) (*Da
 	return &response.Data, nil
 }
 
-func (t *TikTokScraper) FetchUserAwemesFromMinCursor(username string, minCursor int64) ([]Aweme, error) {
+func (t *Client) FetchAllUserAwemesFromMinCursor(userId string, minCursor int64) ([]Aweme, error) {
 	var allAwemes []Aweme
 	var maxCursor int64
 
 	for {
-		data, err := t.FetchUserFeedData(username, maxCursor)
+		data, err := t.FetchUserFeed(userId, maxCursor)
 		if err != nil {
 			return nil, err
 		}
@@ -256,13 +426,12 @@ func (t *TikTokScraper) FetchUserAwemesFromMinCursor(username string, minCursor 
 		}
 
 		maxCursor = data.MaxCursor
-		time.Sleep(t.RateLimit)
 	}
 
 	return allAwemes, nil
 }
 
-func (t *TikTokScraper) FetchUserAwemes(username string) ([]Aweme, error) {
+func (t *Client) FetchAllUserAwemes(userId string) ([]Aweme, error) {
 	minCursor := int64(0)
-	return t.FetchUserAwemesFromMinCursor(username, minCursor)
+	return t.FetchAllUserAwemesFromMinCursor(userId, minCursor)
 }

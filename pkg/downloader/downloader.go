@@ -6,12 +6,12 @@ import (
 	"os"
 )
 
-// VideoDownloader represents a video downloader
-type VideoDownloader struct {
+// Client represents a video downloader
+type Client struct {
 }
 
 // DownloadVideo downloads a video from the given URL and saves it locally
-func (v *VideoDownloader) DownloadVideo(url, filename string) error {
+func (v *Client) DownloadVideo(url, filename string) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return err

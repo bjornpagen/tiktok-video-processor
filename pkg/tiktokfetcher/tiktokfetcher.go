@@ -6,19 +6,25 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"go.uber.org/ratelimit"
 )
 
-// TikTokFetcher represents the TikTok API configuration
 type TikTokFetcher struct {
-	APIHost string
-	APIKey  string
+	APIHost    string
+	APIKey     string
+	RateLimit  ratelimit.Limiter
+	HttpClient *http.Client
 }
 
-// New returns a new VideoDownloader instance
 func New(apiKey string) *TikTokFetcher {
 	return &TikTokFetcher{
-		APIHost: "tiktok-download-without-watermark.p.rapidapi.com",
-		APIKey:  apiKey,
+		APIHost:   "tiktok-download-without-watermark.p.rapidapi.com",
+		APIKey:    apiKey,
+		RateLimit: ratelimit.New(60),
+		HttpClient: &http.Client{
+			Timeout: 10,
+		},
 	}
 }
 
@@ -80,7 +86,8 @@ func (t *TikTokFetcher) GetVideoURL(tiktokURL string) (string, error) {
 	req.Header.Add("X-RapidAPI-Key", t.APIKey)
 	req.Header.Add("X-RapidAPI-Host", t.APIHost)
 
-	res, err := http.DefaultClient.Do(req)
+	t.RateLimit.Take()
+	res, err := t.HttpClient.Do(req)
 	if err != nil {
 		return "", err
 	}
