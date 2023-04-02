@@ -1,14 +1,17 @@
 namespace tiktokdb;
 
-table TikTok {
-  awemeid: string;
+table Aweme {
   share_link: string;
 }
 
-table TikTokUser {
+table User {
   latest_username: string;
   last_used_mincursor: string;
-  tiktoks: [TikTok];
+  videos: UserAwemes;
 }
 
-root_type TikTokUser;
+table UserAwemes {
+  video_ids: [string];
+}
+
+root_type User;

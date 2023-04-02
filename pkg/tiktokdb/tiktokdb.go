@@ -3,7 +3,7 @@ package tiktokdb
 import (
 	"errors"
 
-	schema "github.com/bjornpagen/tiktok-video-processor/pkg/tiktokdb/schemas/tiktokdb"
+	tiktokdmschema "github.com/bjornpagen/tiktok-video-processor/autogen/tiktokdb"
 	flatbuffers "github.com/google/flatbuffers/go"
 
 	"os"
@@ -41,34 +41,41 @@ func Open(path string) (*TikTokDB, error) {
 	return &TikTokDB{client: client}, nil
 }
 
-func New(path string) (*TikTokDB, error) {
+func Create(path string) error {
 	logger := zerolog.Nop()
 	mode := os.FileMode(0644)
 	numReaders := uint(8)
 	numDBs := uint(1)
 
+	if _, err := os.Stat(path); err == nil {
+		return errors.New("directory already exists")
+	}
+
+	err := os.Mkdir(path, 0755)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
 	client, err := golmdb.NewLMDB(logger, path, mode, numReaders, numDBs, golmdb.EnvironmentFlag(0x40000), 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	defer client.TerminateSync()
 
 	db := &TikTokDB{client: client}
-	var wg sync.WaitGroup
-	wg.Add(1)
+	defer db.Close()
 
 	err = db.client.Update(func(txn *golmdb.ReadWriteTxn) error {
+		db.wg.Add(1)
+		defer db.wg.Done()
+
 		_, err := txn.DBRef(usersDb, golmdb.DatabaseFlag(0x40000))
-		defer wg.Done()
 		return err
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	wg.Wait()
-
-	return db, nil
+	return nil
 }
 
 func (db *TikTokDB) Close() {
@@ -76,8 +83,8 @@ func (db *TikTokDB) Close() {
 	db.client.TerminateSync()
 }
 
-func (db *TikTokDB) GetUser(userID string) (*schema.TikTokUser, error) {
-	var user *schema.TikTokUser
+func (db *TikTokDB) GetUser(userID string) (*tiktokdmschema.TikTokUser, error) {
+	var user *tiktokdmschema.TikTokUser
 
 	err := db.client.View(func(txn *golmdb.ReadOnlyTxn) error {
 		db.wg.Add(1)
@@ -93,7 +100,7 @@ func (db *TikTokDB) GetUser(userID string) (*schema.TikTokUser, error) {
 			return err
 		}
 
-		user = new(schema.TikTokUser)
+		user = new(tiktokdmschema.TikTokUser)
 		user.Init(value, flatbuffers.GetUOffsetT(value))
 		return nil
 	})
@@ -105,7 +112,7 @@ func (db *TikTokDB) GetUser(userID string) (*schema.TikTokUser, error) {
 	return user, nil
 }
 
-func (db *TikTokDB) SetUser(userID string, user *schema.TikTokUser) error {
+func (db *TikTokDB) SetUser(userID string, user *tiktokdmschema.TikTokUser) error {
 	return db.client.Update(func(txn *golmdb.ReadWriteTxn) error {
 		db.wg.Add(1)
 		defer db.wg.Done()
