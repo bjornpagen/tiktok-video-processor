@@ -11,7 +11,7 @@ table User {
 }
 
 table UserAwemes {
-  video_ids: [string];
+  aweme_ids: [string];
 }
 
 root_type User;

@@ -83,8 +83,8 @@ func (db *TikTokDB) Close() {
 	db.client.TerminateSync()
 }
 
-func (db *TikTokDB) GetUser(userID string) (*tiktokdmschema.TikTokUser, error) {
-	var user *tiktokdmschema.TikTokUser
+func (db *TikTokDB) GetUser(userID string) (*tiktokdmschema.User, error) {
+	var user *tiktokdmschema.User
 
 	err := db.client.View(func(txn *golmdb.ReadOnlyTxn) error {
 		db.wg.Add(1)
@@ -100,7 +100,7 @@ func (db *TikTokDB) GetUser(userID string) (*tiktokdmschema.TikTokUser, error) {
 			return err
 		}
 
-		user = new(tiktokdmschema.TikTokUser)
+		user = new(tiktokdmschema.User)
 		user.Init(value, flatbuffers.GetUOffsetT(value))
 		return nil
 	})
@@ -112,7 +112,7 @@ func (db *TikTokDB) GetUser(userID string) (*tiktokdmschema.TikTokUser, error) {
 	return user, nil
 }
 
-func (db *TikTokDB) SetUser(userID string, user *tiktokdmschema.TikTokUser) error {
+func (db *TikTokDB) SetUser(userID string, user *tiktokdmschema.User) error {
 	return db.client.Update(func(txn *golmdb.ReadWriteTxn) error {
 		db.wg.Add(1)
 		defer db.wg.Done()

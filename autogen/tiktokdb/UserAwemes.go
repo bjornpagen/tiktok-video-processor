@@ -33,7 +33,7 @@ func (rcv *UserAwemes) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *UserAwemes) VideoIds(j int) []byte {
+func (rcv *UserAwemes) AwemeIds(j int) []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
@@ -42,7 +42,7 @@ func (rcv *UserAwemes) VideoIds(j int) []byte {
 	return nil
 }
 
-func (rcv *UserAwemes) VideoIdsLength() int {
+func (rcv *UserAwemes) AwemeIdsLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -53,10 +53,10 @@ func (rcv *UserAwemes) VideoIdsLength() int {
 func UserAwemesStart(builder *flatbuffers.Builder) {
 	builder.StartObject(1)
 }
-func UserAwemesAddVideoIds(builder *flatbuffers.Builder, videoIds flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(videoIds), 0)
+func UserAwemesAddAwemeIds(builder *flatbuffers.Builder, awemeIds flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(awemeIds), 0)
 }
-func UserAwemesStartVideoIdsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func UserAwemesStartAwemeIdsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func UserAwemesEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
