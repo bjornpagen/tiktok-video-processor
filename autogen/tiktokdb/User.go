@@ -49,17 +49,21 @@ func (rcv *User) LastUsedMincursor() []byte {
 	return nil
 }
 
-func (rcv *User) Videos(obj *UserAwemes) *UserAwemes {
+func (rcv *User) AwemeIds(j int) []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(UserAwemes)
-		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		a := rcv._tab.Vector(o)
+		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
 	}
 	return nil
+}
+
+func (rcv *User) AwemeIdsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
 }
 
 func UserStart(builder *flatbuffers.Builder) {
@@ -71,8 +75,11 @@ func UserAddLatestUsername(builder *flatbuffers.Builder, latestUsername flatbuff
 func UserAddLastUsedMincursor(builder *flatbuffers.Builder, lastUsedMincursor flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(lastUsedMincursor), 0)
 }
-func UserAddVideos(builder *flatbuffers.Builder, videos flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(videos), 0)
+func UserAddAwemeIds(builder *flatbuffers.Builder, awemeIds flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(awemeIds), 0)
+}
+func UserStartAwemeIdsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func UserEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

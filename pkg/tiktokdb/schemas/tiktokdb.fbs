@@ -7,10 +7,6 @@ table Aweme {
 table User {
   latest_username: string;
   last_used_mincursor: string;
-  videos: UserAwemes;
-}
-
-table UserAwemes {
   aweme_ids: [string];
 }
 
