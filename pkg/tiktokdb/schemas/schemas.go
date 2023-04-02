@@ -1,4 +1,4 @@
-package schema
+package schemas
 
 import (
 	"github.com/bjornpagen/tiktok-video-processor/autogen/tiktokdb"
@@ -26,14 +26,14 @@ func NewUserAwemes(awemeIds []string) *tiktokdb.UserAwemes {
 		videoIds[i] = builder.CreateString(id)
 	}
 
-	tiktokdb.UserAwemesStartVideoIdsVector(builder, len(awemeIds))
+	tiktokdb.UserAwemesStartAwemeIdsVector(builder, len(awemeIds))
 	for i := len(awemeIds) - 1; i >= 0; i-- {
 		builder.PrependUOffsetT(videoIds[i])
 	}
 	videoIdsVector := builder.EndVector(len(awemeIds))
 
 	tiktokdb.UserAwemesStart(builder)
-	tiktokdb.UserAwemesAddVideoIds(builder, videoIdsVector)
+	tiktokdb.UserAwemesAddAwemeIds(builder, videoIdsVector)
 	userAwemes := tiktokdb.UserAwemesEnd(builder)
 	builder.Finish(userAwemes)
 
@@ -45,12 +45,18 @@ func NewUser(latestUsername string, latestMincursor string, awemes *tiktokdb.Use
 
 	username := builder.CreateString(latestUsername)
 	mincursor := builder.CreateString(latestMincursor)
+
+	awemesBuilder := flatbuffers.NewBuilder(0)
 	awemesBytes := awemes.Table().Bytes
+	awemesBuilder.StartObject(1)
+	awemesBuilder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(awemesBuilder.CreateByteVector(awemesBytes)), 0)
+	userAwemes := awemesBuilder.EndObject()
+	awemesBuilder.Finish(userAwemes)
 
 	builder.StartObject(3)
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(username), 0)
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(mincursor), 0)
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(builder.CreateByteVector(awemesBytes)), 0)
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(builder.CreateByteVector(awemesBuilder.FinishedBytes())), 0)
 	user := builder.EndObject()
 
 	builder.Finish(user)
