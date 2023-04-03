@@ -1,25 +1,24 @@
 package tiktokdb
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
-
-	tiktokdmschema "github.com/bjornpagen/tiktok-video-processor/autogen/tiktokdb"
-	flatbuffers "github.com/google/flatbuffers/go"
-
 	"os"
-
 	"sync"
 
+	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktokscraper"
 	"github.com/rs/zerolog"
-	"wellquite.org/golmdb"
+	lmdb "wellquite.org/golmdb"
 )
 
 const (
 	usersDb = "users"
+	awemeDb = "awemes"
 )
 
 type TikTokDB struct {
-	client *golmdb.LMDBClient
+	client *lmdb.LMDBClient
 	wg     sync.WaitGroup
 }
 
@@ -33,7 +32,7 @@ func Open(path string) (*TikTokDB, error) {
 		return nil, errors.New("database does not exist")
 	}
 
-	client, err := golmdb.NewLMDB(logger, path, mode, numReaders, numDBs, golmdb.EnvironmentFlag(0), 1)
+	client, err := lmdb.NewLMDB(logger, path, mode, numReaders, numDBs, lmdb.EnvironmentFlag(0), 1)
 	if err != nil {
 		return nil, err
 	}
@@ -56,19 +55,22 @@ func Create(path string) error {
 		return err
 	}
 
-	client, err := golmdb.NewLMDB(logger, path, mode, numReaders, numDBs, golmdb.EnvironmentFlag(0x40000), 1)
+	client, err := lmdb.NewLMDB(logger, path, mode, numReaders, numDBs, lmdb.EnvironmentFlag(0x40000), 1)
 	if err != nil {
 		return err
 	}
 
-	db := &TikTokDB{client: client}
+	db := &TikTokDB{
+		client: client,
+		wg:     sync.WaitGroup{},
+	}
 	defer db.Close()
 
-	err = db.client.Update(func(txn *golmdb.ReadWriteTxn) error {
+	err = db.client.Update(func(txn *lmdb.ReadWriteTxn) error {
 		db.wg.Add(1)
 		defer db.wg.Done()
 
-		_, err := txn.DBRef(usersDb, golmdb.DatabaseFlag(0x40000))
+		_, err := txn.DBRef(usersDb, lmdb.DatabaseFlag(0x40000))
 		return err
 	})
 	if err != nil {
@@ -83,14 +85,14 @@ func (db *TikTokDB) Close() {
 	db.client.TerminateSync()
 }
 
-func (db *TikTokDB) GetUser(userID string) (*tiktokdmschema.User, error) {
-	var user *tiktokdmschema.User
+func (db *TikTokDB) GetUser(userID string) (*tiktokscraper.User, error) {
+	var user *tiktokscraper.User
 
-	err := db.client.View(func(txn *golmdb.ReadOnlyTxn) error {
+	err := db.client.View(func(txn *lmdb.ReadOnlyTxn) error {
 		db.wg.Add(1)
 		defer db.wg.Done()
 
-		dbRef, err := txn.DBRef(usersDb, golmdb.DatabaseFlag(0))
+		dbRef, err := txn.DBRef(usersDb, lmdb.DatabaseFlag(0))
 		if err != nil {
 			return err
 		}
@@ -100,9 +102,10 @@ func (db *TikTokDB) GetUser(userID string) (*tiktokdmschema.User, error) {
 			return err
 		}
 
-		user = new(tiktokdmschema.User)
-		user.Init(value, flatbuffers.GetUOffsetT(value))
-		return nil
+		decoder := gob.NewDecoder(bytes.NewReader(value))
+		user = &tiktokscraper.User{}
+		err = decoder.Decode(user)
+		return err
 	})
 
 	if err != nil {
@@ -112,19 +115,77 @@ func (db *TikTokDB) GetUser(userID string) (*tiktokdmschema.User, error) {
 	return user, nil
 }
 
-func (db *TikTokDB) SetUser(userID string, user *tiktokdmschema.User) error {
-	return db.client.Update(func(txn *golmdb.ReadWriteTxn) error {
+func (db *TikTokDB) SetUser(userID string, user *tiktokscraper.User) error {
+	return db.client.Update(func(txn *lmdb.ReadWriteTxn) error {
 		db.wg.Add(1)
 		defer db.wg.Done()
 
-		dbRef, err := txn.DBRef(usersDb, golmdb.DatabaseFlag(0))
+		dbRef, err := txn.DBRef(usersDb, lmdb.DatabaseFlag(0))
 		if err != nil {
 			return err
 		}
 
 		key := []byte(userID)
-		value := user.Table().Bytes
 
-		return txn.Put(dbRef, key, value, golmdb.PutFlag(0))
+		var buf bytes.Buffer
+		encoder := gob.NewEncoder(&buf)
+		err = encoder.Encode(user)
+		if err != nil {
+			return err
+		}
+
+		return txn.Put(dbRef, key, buf.Bytes(), lmdb.PutFlag(0))
+	})
+}
+
+func (db *TikTokDB) GetAwemeList(userID string) []tiktokscraper.Aweme {
+	var awemeList []tiktokscraper.Aweme
+
+	err := db.client.View(func(txn *lmdb.ReadOnlyTxn) error {
+		db.wg.Add(1)
+		defer db.wg.Done()
+
+		dbRef, err := txn.DBRef(awemeDb, lmdb.DatabaseFlag(0))
+		if err != nil {
+			return err
+		}
+
+		value, err := txn.Get(dbRef, []byte(userID))
+		if err != nil {
+			return err
+		}
+
+		decoder := gob.NewDecoder(bytes.NewReader(value))
+		err = decoder.Decode(&awemeList)
+		return err
+	})
+
+	if err != nil {
+		return nil
+	}
+
+	return awemeList
+}
+
+func (db *TikTokDB) SetAwemeList(userID string, awemeList []tiktokscraper.Aweme) error {
+	return db.client.Update(func(txn *lmdb.ReadWriteTxn) error {
+		db.wg.Add(1)
+		defer db.wg.Done()
+
+		dbRef, err := txn.DBRef(awemeDb, lmdb.DatabaseFlag(0))
+		if err != nil {
+			return err
+		}
+
+		key := []byte(userID)
+
+		var buf bytes.Buffer
+		encoder := gob.NewEncoder(&buf)
+		err = encoder.Encode(awemeList)
+		if err != nil {
+			return err
+		}
+
+		return txn.Put(dbRef, key, buf.Bytes(), lmdb.PutFlag(0))
 	})
 }

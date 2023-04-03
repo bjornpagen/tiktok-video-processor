@@ -403,7 +403,7 @@ func (t *Client) FetchUserFeed(userId string, maxCursor int64) (*FeedChunk, erro
 	return &response.Data, nil
 }
 
-func (t *Client) FetchAllUserAwemesFromMinCursor(userId string, minCursor int64) ([]Aweme, error) {
+func (t *Client) FetchUserAwemeListFromMinCursor(userId string, minCursor int64) ([]Aweme, error) {
 	var allAwemes []Aweme
 	var maxCursor int64
 
@@ -431,7 +431,7 @@ func (t *Client) FetchAllUserAwemesFromMinCursor(userId string, minCursor int64)
 	return allAwemes, nil
 }
 
-func (t *Client) FetchAllUserAwemes(userId string) ([]Aweme, error) {
+func (t *Client) FetchUserAwemeList(userId string) ([]Aweme, error) {
 	minCursor := int64(0)
-	return t.FetchAllUserAwemesFromMinCursor(userId, minCursor)
+	return t.FetchUserAwemeListFromMinCursor(userId, minCursor)
 }
