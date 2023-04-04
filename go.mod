@@ -3,7 +3,6 @@ module github.com/bjornpagen/tiktok-video-processor
 go 1.20
 
 require (
-	github.com/google/flatbuffers v23.3.3+incompatible
 	github.com/rs/zerolog v1.29.0
 	go.uber.org/ratelimit v0.2.0
 	wellquite.org/golmdb v0.0.0-20221218163858-4bf6dfb536d2
