@@ -1,4 +1,4 @@
-package tiktokfetcher
+package fetcherapi
 
 import (
 	"encoding/json"
@@ -10,15 +10,15 @@ import (
 	"go.uber.org/ratelimit"
 )
 
-type TikTokFetcher struct {
+type Fetcher struct {
 	APIHost    string
 	APIKey     string
 	RateLimit  ratelimit.Limiter
 	HttpClient *http.Client
 }
 
-func New(apiKey string) *TikTokFetcher {
-	return &TikTokFetcher{
+func New(apiKey string) *Fetcher {
+	return &Fetcher{
 		APIHost:   "tiktok-download-without-watermark.p.rapidapi.com",
 		APIKey:    apiKey,
 		RateLimit: ratelimit.New(60),
@@ -77,7 +77,7 @@ type Author struct {
 }
 
 // GetVideoURL fetches the video URL using the unofficial TikTok API
-func (t *TikTokFetcher) GetVideoURL(tiktokURL string) (string, error) {
+func (t *Fetcher) GetVideoURL(tiktokURL string) (string, error) {
 	encodedURL := url.QueryEscape(tiktokURL)
 	apiURL := fmt.Sprintf("https://%s/analysis?url=%s&hd=1", t.APIHost, encodedURL)
 

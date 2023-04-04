@@ -1,4 +1,4 @@
-package tiktokscraper
+package scraperapi
 
 import (
 	"encoding/json"
@@ -10,15 +10,15 @@ import (
 	"go.uber.org/ratelimit"
 )
 
-type Client struct {
+type Scraper struct {
 	APIHost    string
 	APIKey     string
 	RateLimit  ratelimit.Limiter
 	HttpClient *http.Client
 }
 
-func New(apiKey string) *Client {
-	return &Client{
+func New(apiKey string) *Scraper {
+	return &Scraper{
 		APIHost:   "tiktok-best-experience.p.rapidapi.com",
 		APIKey:    apiKey,
 		RateLimit: ratelimit.New(50),
@@ -284,7 +284,7 @@ type Image struct {
 	Height  int      `json:"height"`
 }
 
-func (t *Client) FetchUserData(userId string) (*User, error) {
+func (t *Scraper) FetchUserData(userId string) (*User, error) {
 	url := fmt.Sprintf("https://%s/user/id/%s", t.APIHost, userId)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -324,7 +324,7 @@ func (t *Client) FetchUserData(userId string) (*User, error) {
 	return &response.Data.User, nil
 }
 
-func (t *Client) FetchUserId(username string) (string, error) {
+func (t *Scraper) FetchUserId(username string) (string, error) {
 	url := fmt.Sprintf("https://%s/user/%s", t.APIHost, username)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -364,7 +364,7 @@ func (t *Client) FetchUserId(username string) (string, error) {
 	return response.Data.User.UID, nil
 }
 
-func (t *Client) FetchUserFeed(userId string, maxCursor int64) (*FeedChunk, error) {
+func (t *Scraper) FetchUserFeed(userId string, maxCursor int64) (*FeedChunk, error) {
 	url := fmt.Sprintf("https://%s/user/id/%s/feed", t.APIHost, userId)
 	if maxCursor > 0 {
 		url = fmt.Sprintf("%s?max_cursor=%d", url, maxCursor)
@@ -403,7 +403,7 @@ func (t *Client) FetchUserFeed(userId string, maxCursor int64) (*FeedChunk, erro
 	return &response.Data, nil
 }
 
-func (t *Client) FetchUserAwemeListFromMinCursor(userId string, minCursor int64) ([]Aweme, error) {
+func (t *Scraper) FetchUserAwemeListFromMinCursor(userId string, minCursor int64) ([]Aweme, error) {
 	var allAwemes []Aweme
 	var maxCursor int64
 
@@ -431,7 +431,7 @@ func (t *Client) FetchUserAwemeListFromMinCursor(userId string, minCursor int64)
 	return allAwemes, nil
 }
 
-func (t *Client) FetchUserAwemeList(userId string) ([]Aweme, error) {
+func (t *Scraper) FetchUserAwemeList(userId string) ([]Aweme, error) {
 	minCursor := int64(0)
 	return t.FetchUserAwemeListFromMinCursor(userId, minCursor)
 }
