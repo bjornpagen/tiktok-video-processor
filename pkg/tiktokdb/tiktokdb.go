@@ -3,7 +3,6 @@ package tiktokdb
 import (
 	"bytes"
 	"encoding/gob"
-	"errors"
 	"os"
 	"sync"
 
@@ -17,90 +16,56 @@ const (
 	awemeDb = "awemes"
 )
 
+const (
+	numDBs = uint(2)
+)
+
 type TikTokDB struct {
-	client *lmdb.LMDBClient
-	wg     sync.WaitGroup
-	path   string
+	Lmdb *lmdb.LMDBClient
+	wg   sync.WaitGroup
+	path string
 }
 
-func New(path string) (*TikTokDB, error) {
-	logger := zerolog.Nop()
-	mode := os.FileMode(0644)
-	numReaders := uint(8)
-	numDBs := uint(1)
-
-	if _, err := os.Stat(path); err == nil {
-		return nil, errors.New("directory already exists")
-	}
-
-	err := os.Mkdir(path, 0755)
-	if err != nil && !os.IsExist(err) {
-		return nil, err
-	}
-
-	client, err := lmdb.NewLMDB(logger, path, mode, numReaders, numDBs, lmdb.EnvironmentFlag(0x40000), 1)
-	if err != nil {
-		return nil, err
-	}
-
+func New(path string) *TikTokDB {
 	db := &TikTokDB{
-		client: client,
-		wg:     sync.WaitGroup{},
-		path:   path,
+		Lmdb: nil,
+		wg:   sync.WaitGroup{},
+		path: path,
 	}
-	defer db.Close()
-
-	err = db.client.Update(func(txn *lmdb.ReadWriteTxn) error {
-		db.wg.Add(1)
-		defer db.wg.Done()
-
-		_, err := txn.DBRef(usersDb, lmdb.DatabaseFlag(0x40000))
-		if err != nil {
-			return err
-		}
-
-		_, err = txn.DBRef(awemeDb, lmdb.DatabaseFlag(0x40000))
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
+	return db
 }
 
 func (db *TikTokDB) Open() error {
 	logger := zerolog.Nop()
 	mode := os.FileMode(0644)
 	numReaders := uint(8)
-	numDBs := uint(1)
 
+	// check if directory exists, if not create it
 	if _, err := os.Stat(db.path); os.IsNotExist(err) {
-		return errors.New("database does not exist")
+		err = os.MkdirAll(db.path, os.ModePerm)
+		if err != nil {
+			return err
+		}
 	}
 
 	client, err := lmdb.NewLMDB(logger, db.path, mode, numReaders, numDBs, lmdb.EnvironmentFlag(0), 1)
 	if err != nil {
 		return err
 	}
-	db.client = client
+	db.Lmdb = client
 
 	return nil
 }
 
 func (db *TikTokDB) Close() {
 	db.wg.Wait()
-	db.client.TerminateSync()
+	db.Lmdb.TerminateSync()
 }
 
 func (db *TikTokDB) GetUser(userID string) (*scraperapi.User, error) {
 	var user *scraperapi.User
 
-	err := db.client.View(func(txn *lmdb.ReadOnlyTxn) error {
+	err := db.Lmdb.View(func(txn *lmdb.ReadOnlyTxn) error {
 		db.wg.Add(1)
 		defer db.wg.Done()
 
@@ -128,11 +93,11 @@ func (db *TikTokDB) GetUser(userID string) (*scraperapi.User, error) {
 }
 
 func (db *TikTokDB) SetUser(userID string, user *scraperapi.User) error {
-	return db.client.Update(func(txn *lmdb.ReadWriteTxn) error {
+	return db.Lmdb.Update(func(txn *lmdb.ReadWriteTxn) error {
 		db.wg.Add(1)
 		defer db.wg.Done()
 
-		dbRef, err := txn.DBRef(usersDb, lmdb.DatabaseFlag(0))
+		dbRef, err := txn.DBRef(usersDb, lmdb.DatabaseFlag(0x40000))
 		if err != nil {
 			return err
 		}
@@ -150,10 +115,10 @@ func (db *TikTokDB) SetUser(userID string, user *scraperapi.User) error {
 	})
 }
 
-func (db *TikTokDB) GetAwemeList(userID string) []scraperapi.Aweme {
+func (db *TikTokDB) GetAwemeList(userID string) ([]scraperapi.Aweme, error) {
 	var awemeList []scraperapi.Aweme
 
-	err := db.client.View(func(txn *lmdb.ReadOnlyTxn) error {
+	err := db.Lmdb.View(func(txn *lmdb.ReadOnlyTxn) error {
 		db.wg.Add(1)
 		defer db.wg.Done()
 
@@ -173,18 +138,18 @@ func (db *TikTokDB) GetAwemeList(userID string) []scraperapi.Aweme {
 	})
 
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return awemeList
+	return awemeList, nil
 }
 
 func (db *TikTokDB) SetAwemeList(userID string, awemeList []scraperapi.Aweme) error {
-	return db.client.Update(func(txn *lmdb.ReadWriteTxn) error {
+	return db.Lmdb.Update(func(txn *lmdb.ReadWriteTxn) error {
 		db.wg.Add(1)
 		defer db.wg.Done()
 
-		dbRef, err := txn.DBRef(awemeDb, lmdb.DatabaseFlag(0))
+		dbRef, err := txn.DBRef(awemeDb, lmdb.DatabaseFlag(0x40000))
 		if err != nil {
 			return err
 		}

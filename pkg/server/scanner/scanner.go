@@ -3,6 +3,8 @@ package scanner
 import (
 	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktok/scraperapi"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktokdb"
+
+	lmdb "wellquite.org/golmdb"
 )
 
 type Client struct {
@@ -28,13 +30,29 @@ func (c *Client) Update(userID string) error {
 	}
 
 	// Fetch new Awemes
-	awemeList := c.db.GetAwemeList(userID)
+	awemeList, err := c.db.GetAwemeList(userID)
+	if err != nil {
+		// if MDB_NOTFOUND, then fetch all Awemes
+		if err == lmdb.NotFound {
+			awemeList, err = c.scraper.FetchUserAwemeList(userID)
+			if err != nil {
+				return err
+			}
+			if err := c.db.SetAwemeList(userID, awemeList); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		return err
+	}
+
 	minCursor := int64(0)
 	if len(awemeList) > 0 {
 		minCursor = awemeList[len(awemeList)-1].CreateTime
 	}
 
-	newAwemes, err := c.scraper.FetchUserAwemeListFromMinCursor(userID, minCursor)
+	newAwemes, err := c.scraper.FetchUserAwemeListAfterCursor(userID, minCursor)
 	if err != nil {
 		return err
 	}

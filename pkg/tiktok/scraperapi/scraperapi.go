@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"go.uber.org/ratelimit"
 )
@@ -23,7 +24,7 @@ func New(apiKey string) *Scraper {
 		APIKey:    apiKey,
 		RateLimit: ratelimit.New(50),
 		HttpClient: &http.Client{
-			Timeout: 10,
+			Timeout: 10 * time.Second,
 		},
 	}
 }
@@ -403,7 +404,7 @@ func (t *Scraper) FetchUserFeed(userId string, maxCursor int64) (*FeedChunk, err
 	return &response.Data, nil
 }
 
-func (t *Scraper) FetchUserAwemeListFromMinCursor(userId string, minCursor int64) ([]Aweme, error) {
+func (t *Scraper) FetchUserAwemeListAfterCursor(userId string, cursor int64) ([]Aweme, error) {
 	var allAwemes []Aweme
 	var maxCursor int64
 
@@ -414,7 +415,7 @@ func (t *Scraper) FetchUserAwemeListFromMinCursor(userId string, minCursor int64
 		}
 
 		for _, aweme := range data.AwemeList {
-			if aweme.CreateTime >= minCursor {
+			if aweme.CreateTime > cursor {
 				allAwemes = append(allAwemes, aweme)
 			} else {
 				return allAwemes, nil
@@ -433,5 +434,5 @@ func (t *Scraper) FetchUserAwemeListFromMinCursor(userId string, minCursor int64
 
 func (t *Scraper) FetchUserAwemeList(userId string) ([]Aweme, error) {
 	minCursor := int64(0)
-	return t.FetchUserAwemeListFromMinCursor(userId, minCursor)
+	return t.FetchUserAwemeListAfterCursor(userId, minCursor)
 }
