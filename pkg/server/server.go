@@ -4,11 +4,15 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/bjornpagen/tiktok-video-processor/pkg/server/db"
+	"github.com/bjornpagen/tiktok-video-processor/pkg/storer"
+	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktok/fetcherapi"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktok/scraperapi"
+	"github.com/bjornpagen/tiktok-video-processor/pkg/videoprocessor"
 
 	lmdb "wellquite.org/golmdb"
 )
@@ -16,12 +20,16 @@ import (
 type Server struct {
 	DB      *db.TikTokDB
 	Scraper *scraperapi.Scraper
+	Fetcher *fetcherapi.Fetcher
+	Out     storer.Storer
 }
 
-func New(dbPath, fetcherApiKey, scraperApiKey string) *Server {
+func New(dbPath, outPath, fetcherApiKey, scraperApiKey string) *Server {
 	return &Server{
 		DB:      db.New(dbPath),
 		Scraper: scraperapi.New(scraperApiKey),
+		Fetcher: fetcherapi.New(fetcherApiKey),
+		Out:     storer.NewLocalStorer(outPath),
 	}
 }
 
@@ -122,4 +130,62 @@ func (s *Server) UpdateAllOnce() error {
 	}
 
 	return nil
+}
+
+func (s *Server) ProcessAwemes(userID string) (outputs []string, err error) {
+	awemes, err := s.DB.GetAwemeList(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("processing %d awemes for user #%s", len(awemes), userID)
+
+	os.Exit(0)
+
+	var wg sync.WaitGroup
+	outputPaths := make(chan string, len(awemes))
+
+	for _, aweme := range awemes {
+		wg.Add(1)
+		go func(shareUrl string) {
+			defer wg.Done()
+
+			dlUrl, err := s.Fetcher.GetVideoURL(shareUrl)
+			if err != nil {
+				log.Printf("Error fetching video for aweme %s: %v", shareUrl, err)
+			}
+
+			vp := videoprocessor.New(s.Fetcher, s.Out)
+			cfg := videoprocessor.VideoConfig{
+				MediaURL:       dlUrl,
+				ProfilePicture: "",
+				Username:       "",
+				Comment:        "",
+				IsVerified:     false,
+			}
+			outputPath, err := vp.ProcessVideo(&cfg)
+
+			if err != nil {
+				log.Printf("Error processing video for aweme %s: %v", shareUrl, err)
+			} else {
+				outputPaths <- outputPath
+
+			}
+		}(aweme.ShareURL)
+	}
+
+	wg.Wait()
+	close(outputPaths)
+
+	var accessPaths []string
+	for outputPath := range outputPaths {
+		accessPath, err := s.Out.Store(outputPath)
+		if err != nil {
+			log.Printf("Error storing video %s: %v", outputPath, err)
+		} else {
+			accessPaths = append(accessPaths, accessPath)
+		}
+	}
+
+	return accessPaths, nil
 }

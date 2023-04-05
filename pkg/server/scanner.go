@@ -7,6 +7,8 @@ import (
 )
 
 func (s *Server) Update(userID string) error {
+	panic("THIS IS FUCKED UP AND NOT WORKING CORRECTLY")
+
 	log.Printf("updating user #%s", userID)
 	log.Printf("fetching user data for #%s", userID)
 	// Refresh the user info
@@ -75,6 +77,9 @@ func (s *Server) FullUpdate(userID string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("awemes: +%v", awemeList)
+
 	if err := s.DB.SetAwemeList(userID, awemeList); err != nil {
 		return err
 	}

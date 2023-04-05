@@ -8,6 +8,15 @@ import (
 
 // Client represents a video downloader
 type Client struct {
+	HttpClient *http.Client
+}
+
+func New() *Client {
+	return &Client{
+		HttpClient: &http.Client{
+			Timeout: 10,
+		},
+	}
 }
 
 // DownloadVideo downloads a video from the given URL and saves it locally
