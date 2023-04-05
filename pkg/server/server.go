@@ -140,8 +140,6 @@ func (s *Server) ProcessAwemes(userID string) (outputs []string, err error) {
 
 	log.Printf("processing %d awemes for user #%s", len(awemes), userID)
 
-	os.Exit(0)
-
 	var wg sync.WaitGroup
 	outputPaths := make(chan string, len(awemes))
 
@@ -155,15 +153,8 @@ func (s *Server) ProcessAwemes(userID string) (outputs []string, err error) {
 				log.Printf("Error fetching video for aweme %s: %v", shareUrl, err)
 			}
 
-			vp := videoprocessor.New(s.Fetcher, s.Out)
-			cfg := videoprocessor.VideoConfig{
-				MediaURL:       dlUrl,
-				ProfilePicture: "",
-				Username:       "",
-				Comment:        "",
-				IsVerified:     false,
-			}
-			outputPath, err := vp.ProcessVideo(&cfg)
+			vp := videoprocessor.New(s.Out)
+			outputPath, err := vp.ProcessVideo(dlUrl)
 
 			if err != nil {
 				log.Printf("Error processing video for aweme %s: %v", shareUrl, err)
@@ -176,6 +167,10 @@ func (s *Server) ProcessAwemes(userID string) (outputs []string, err error) {
 
 	wg.Wait()
 	close(outputPaths)
+
+	for outputPath := range outputPaths {
+		outputs = append(outputs, outputPath)
+	}
 
 	var accessPaths []string
 	for outputPath := range outputPaths {

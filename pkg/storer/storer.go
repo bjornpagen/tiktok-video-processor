@@ -23,7 +23,6 @@ func NewLocalStorer(path string) *LocalStorer {
 
 func (ls *LocalStorer) Store(file string) (string, error) {
 	// Make sure path exists
-	// check if directory exists, if not create it
 	if _, err := os.Stat(ls.Path); os.IsNotExist(err) {
 		err = os.MkdirAll(ls.Path, os.ModePerm)
 		if err != nil {

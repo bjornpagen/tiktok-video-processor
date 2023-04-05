@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"go.uber.org/ratelimit"
 )
@@ -21,9 +22,9 @@ func New(apiKey string) *Fetcher {
 	return &Fetcher{
 		APIHost:   "tiktok-download-without-watermark.p.rapidapi.com",
 		APIKey:    apiKey,
-		RateLimit: ratelimit.New(60),
+		RateLimit: ratelimit.New(2, ratelimit.Per(time.Second)),
 		HttpClient: &http.Client{
-			Timeout: 10,
+			Timeout: 10 * time.Second,
 		},
 	}
 }
@@ -32,7 +33,7 @@ type Response struct {
 	Code          int     `json:"code"`
 	Msg           string  `json:"msg"`
 	ProcessedTime float64 `json:"processed_time"`
-	Data          *Data   `json:"data,omitempty"`
+	Data          Data    `json:"data,omitempty"`
 }
 
 type Data struct {

@@ -22,7 +22,7 @@ func New(apiKey string) *Scraper {
 	return &Scraper{
 		APIHost:   "tiktok-best-experience.p.rapidapi.com",
 		APIKey:    apiKey,
-		RateLimit: ratelimit.New(50),
+		RateLimit: ratelimit.New(50, ratelimit.Per(time.Minute)),
 		HttpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},

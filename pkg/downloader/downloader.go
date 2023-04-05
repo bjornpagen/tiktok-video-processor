@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 // Client represents a video downloader
@@ -14,7 +15,7 @@ type Client struct {
 func New() *Client {
 	return &Client{
 		HttpClient: &http.Client{
-			Timeout: 10,
+			Timeout: 10 * time.Second,
 		},
 	}
 }
