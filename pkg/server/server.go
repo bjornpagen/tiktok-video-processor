@@ -7,39 +7,67 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bjornpagen/tiktok-video-processor/pkg/server/db"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/server/scanner"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktok/scraperapi"
-	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktokdb"
+
+	lmdb "wellquite.org/golmdb"
 )
 
 type Server struct {
-	scanner *scanner.Client
-	userIds []string
+	Scanner *scanner.Client
 }
 
 func New(dbPath, fetcherApiKey, scraperApiKey string) *Server {
 	return &Server{
-		scanner: scanner.New(tiktokdb.New(dbPath), scraperapi.New(scraperApiKey)),
-		userIds: nil,
+		Scanner: scanner.New(db.New(dbPath), scraperapi.New(scraperApiKey)),
 	}
 }
 
 func (s *Server) AddUsername(username string) error {
-	userId, err := s.scanner.Scraper.FetchUserId(username)
+	log.Printf("Adding @%s to the database", username)
+	userId, err := s.Scanner.Scraper.FetchUserId(username)
 	if err != nil {
 		return err
 	}
 
-	s.userIds = append(s.userIds, userId)
+	// Fetch current userIds, append the new one
+	userIds, err := s.Scanner.DB.GetUserIDList()
+	if err != nil {
+		// if MDB_NOTFOUND, then create a new list
+		if err == lmdb.NotFound {
+			userIds = []string{userId}
+			if err := s.Scanner.DB.SetUserIDList(userIds); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+
+	// Check if the userId already exists
+	for _, id := range userIds {
+		if id == userId {
+			log.Printf("User @%s already exists in the database", username)
+			return nil
+		}
+	}
+
+	userIds = append(userIds, userId)
+
+	// Save the new userIds
+	if err := s.Scanner.DB.SetUserIDList(userIds); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (s *Server) Run() error {
 	// Open the TikTokDB
-	if err := s.scanner.DB.Open(); err != nil {
+	if err := s.Scanner.DB.Open(); err != nil {
 		return err
 	}
-	defer s.scanner.DB.Close()
+	defer s.Scanner.DB.Close()
 
 	// Run the server
 	return s.runWithSignalHandling()
@@ -79,13 +107,19 @@ func (s *Server) UpdateAllDaily() error {
 }
 
 func (s *Server) UpdateAllOnce() error {
+	// Fetch all the userIds
+	ids, err := s.Scanner.DB.GetUserIDList()
+	if err != nil {
+		return err
+	}
+
 	// For all users, update them
-	for _, userID := range s.userIds {
-		if err := s.scanner.Update(userID); err != nil {
+	for _, userID := range ids {
+		if err := s.Scanner.Update(userID); err != nil {
 			return err
 		}
 
-		user, err := s.scanner.DB.GetUser(userID)
+		user, err := s.Scanner.DB.GetUser(userID)
 		if err != nil {
 			return err
 		}

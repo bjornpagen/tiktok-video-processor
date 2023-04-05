@@ -1,18 +1,18 @@
 package scanner
 
 import (
+	"github.com/bjornpagen/tiktok-video-processor/pkg/server/db"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktok/scraperapi"
-	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktokdb"
 
 	lmdb "wellquite.org/golmdb"
 )
 
 type Client struct {
-	DB      *tiktokdb.TikTokDB
+	DB      *db.TikTokDB
 	Scraper *scraperapi.Scraper
 }
 
-func New(db *tiktokdb.TikTokDB, scraper *scraperapi.Scraper) *Client {
+func New(db *db.TikTokDB, scraper *scraperapi.Scraper) *Client {
 	return &Client{
 		DB:      db,
 		Scraper: scraper,
