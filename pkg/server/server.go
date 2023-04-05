@@ -26,7 +26,7 @@ func New(dbPath, fetcherApiKey, scraperApiKey string) *Server {
 }
 
 func (s *Server) AddUsername(username string) error {
-	log.Printf("Adding @%s to the database", username)
+	log.Printf("adding @%s to the database", username)
 	userId, err := s.Scraper.FetchUserId(username)
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func (s *Server) AddUsername(username string) error {
 	// Check if the userId already exists
 	for _, id := range userIds {
 		if id == userId {
-			log.Printf("User @%s already exists in the database", username)
+			log.Printf("user @%s already exists in the database", username)
 			return nil
 		}
 	}
@@ -81,12 +81,12 @@ func (s *Server) runWithSignalHandling() error {
 
 	go func() {
 		<-signalChan
-		log.Println("Received an interrupt signal, stopping updates...")
+		log.Println("received an interrupt signal, stopping updates...")
 		os.Exit(0)
 	}()
 
 	if err := s.UpdateAllDaily(); err != nil {
-		log.Printf("Update failed: %s", err)
+		log.Printf("update failed: %s", err)
 		return err
 	}
 
@@ -119,13 +119,6 @@ func (s *Server) UpdateAllOnce() error {
 		if err := s.Update(userID); err != nil {
 			return err
 		}
-
-		user, err := s.DB.GetUser(userID)
-		if err != nil {
-			return err
-		}
-
-		log.Printf("Updated user @%s #%s", user.UniqueID, userID)
 	}
 
 	return nil
