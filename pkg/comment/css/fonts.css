@@ -1,0 +1,10 @@
+/** Proxima Nova **/
+@font-face {
+  font-family: ProximaNova;
+  src: url("./fonts/proxima-nova-semibold.otf") format("opentype");
+}
+
+@font-face {
+  font-family: ProximaNovaBold;
+  src: url("./fonts/proxima-nova-bold.otf") format("opentype");
+}
