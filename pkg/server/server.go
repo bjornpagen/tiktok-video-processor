@@ -8,36 +8,37 @@ import (
 	"time"
 
 	"github.com/bjornpagen/tiktok-video-processor/pkg/server/db"
-	"github.com/bjornpagen/tiktok-video-processor/pkg/server/scanner"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktok/scraperapi"
 
 	lmdb "wellquite.org/golmdb"
 )
 
 type Server struct {
-	Scanner *scanner.Client
+	DB      *db.TikTokDB
+	Scraper *scraperapi.Scraper
 }
 
 func New(dbPath, fetcherApiKey, scraperApiKey string) *Server {
 	return &Server{
-		Scanner: scanner.New(db.New(dbPath), scraperapi.New(scraperApiKey)),
+		DB:      db.New(dbPath),
+		Scraper: scraperapi.New(scraperApiKey),
 	}
 }
 
 func (s *Server) AddUsername(username string) error {
 	log.Printf("Adding @%s to the database", username)
-	userId, err := s.Scanner.Scraper.FetchUserId(username)
+	userId, err := s.Scraper.FetchUserId(username)
 	if err != nil {
 		return err
 	}
 
 	// Fetch current userIds, append the new one
-	userIds, err := s.Scanner.DB.GetUserIDList()
+	userIds, err := s.DB.GetUserIDList()
 	if err != nil {
 		// if MDB_NOTFOUND, then create a new list
 		if err == lmdb.NotFound {
 			userIds = []string{userId}
-			if err := s.Scanner.DB.SetUserIDList(userIds); err != nil {
+			if err := s.DB.SetUserIDList(userIds); err != nil {
 				return err
 			}
 			return nil
@@ -55,7 +56,7 @@ func (s *Server) AddUsername(username string) error {
 	userIds = append(userIds, userId)
 
 	// Save the new userIds
-	if err := s.Scanner.DB.SetUserIDList(userIds); err != nil {
+	if err := s.DB.SetUserIDList(userIds); err != nil {
 		return err
 	}
 
@@ -64,10 +65,10 @@ func (s *Server) AddUsername(username string) error {
 
 func (s *Server) Run() error {
 	// Open the TikTokDB
-	if err := s.Scanner.DB.Open(); err != nil {
+	if err := s.DB.Open(); err != nil {
 		return err
 	}
-	defer s.Scanner.DB.Close()
+	defer s.DB.Close()
 
 	// Run the server
 	return s.runWithSignalHandling()
@@ -108,18 +109,18 @@ func (s *Server) UpdateAllDaily() error {
 
 func (s *Server) UpdateAllOnce() error {
 	// Fetch all the userIds
-	ids, err := s.Scanner.DB.GetUserIDList()
+	ids, err := s.DB.GetUserIDList()
 	if err != nil {
 		return err
 	}
 
 	// For all users, update them
 	for _, userID := range ids {
-		if err := s.Scanner.Update(userID); err != nil {
+		if err := s.Update(userID); err != nil {
 			return err
 		}
 
-		user, err := s.Scanner.DB.GetUser(userID)
+		user, err := s.DB.GetUser(userID)
 		if err != nil {
 			return err
 		}
