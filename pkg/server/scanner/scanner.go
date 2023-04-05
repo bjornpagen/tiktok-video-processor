@@ -8,37 +8,37 @@ import (
 )
 
 type Client struct {
-	db      *tiktokdb.TikTokDB
-	scraper *scraperapi.Scraper
+	DB      *tiktokdb.TikTokDB
+	Scraper *scraperapi.Scraper
 }
 
 func New(db *tiktokdb.TikTokDB, scraper *scraperapi.Scraper) *Client {
 	return &Client{
-		db:      db,
-		scraper: scraper,
+		DB:      db,
+		Scraper: scraper,
 	}
 }
 
 func (c *Client) Update(userID string) error {
 	// Refresh the user info
-	user, err := c.scraper.FetchUserData(userID)
+	user, err := c.Scraper.FetchUserData(userID)
 	if err != nil {
 		return err
 	}
-	if err := c.db.SetUser(userID, user); err != nil {
+	if err := c.DB.SetUser(userID, user); err != nil {
 		return err
 	}
 
 	// Fetch new Awemes
-	awemeList, err := c.db.GetAwemeList(userID)
+	awemeList, err := c.DB.GetAwemeList(userID)
 	if err != nil {
 		// if MDB_NOTFOUND, then fetch all Awemes
 		if err == lmdb.NotFound {
-			awemeList, err = c.scraper.FetchUserAwemeList(userID)
+			awemeList, err = c.Scraper.FetchUserAwemeList(userID)
 			if err != nil {
 				return err
 			}
-			if err := c.db.SetAwemeList(userID, awemeList); err != nil {
+			if err := c.DB.SetAwemeList(userID, awemeList); err != nil {
 				return err
 			}
 			return nil
@@ -52,14 +52,14 @@ func (c *Client) Update(userID string) error {
 		minCursor = awemeList[len(awemeList)-1].CreateTime
 	}
 
-	newAwemes, err := c.scraper.FetchUserAwemeListAfterCursor(userID, minCursor)
+	newAwemes, err := c.Scraper.FetchUserAwemeListAfterCursor(userID, minCursor)
 	if err != nil {
 		return err
 	}
 
 	// Append new Awemes to the existing list
 	awemeList = append(awemeList, newAwemes...)
-	if err := c.db.SetAwemeList(userID, awemeList); err != nil {
+	if err := c.DB.SetAwemeList(userID, awemeList); err != nil {
 		return err
 	}
 
@@ -68,20 +68,20 @@ func (c *Client) Update(userID string) error {
 
 func (c *Client) FullUpdate(userID string) error {
 	// Refresh the user info
-	user, err := c.scraper.FetchUserData(userID)
+	user, err := c.Scraper.FetchUserData(userID)
 	if err != nil {
 		return err
 	}
-	if err := c.db.SetUser(userID, user); err != nil {
+	if err := c.DB.SetUser(userID, user); err != nil {
 		return err
 	}
 
 	// Refetch all Awemes
-	awemeList, err := c.scraper.FetchUserAwemeList(userID)
+	awemeList, err := c.Scraper.FetchUserAwemeList(userID)
 	if err != nil {
 		return err
 	}
-	if err := c.db.SetAwemeList(userID, awemeList); err != nil {
+	if err := c.DB.SetAwemeList(userID, awemeList); err != nil {
 		return err
 	}
 

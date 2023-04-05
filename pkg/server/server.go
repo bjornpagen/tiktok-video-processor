@@ -13,21 +13,19 @@ import (
 )
 
 type Server struct {
-	dbPath  string
+	scanner *scanner.Client
 	userIds []string
-	scraper *scraperapi.Scraper
 }
 
 func New(dbPath, fetcherApiKey, scraperApiKey string) *Server {
 	return &Server{
-		dbPath:  dbPath,
+		scanner: scanner.New(tiktokdb.New(dbPath), scraperapi.New(scraperApiKey)),
 		userIds: nil,
-		scraper: scraperapi.New(scraperApiKey),
 	}
 }
 
 func (s *Server) AddUsername(username string) error {
-	userId, err := s.scraper.FetchUserId(username)
+	userId, err := s.scanner.Scraper.FetchUserId(username)
 	if err != nil {
 		return err
 	}
@@ -37,23 +35,17 @@ func (s *Server) AddUsername(username string) error {
 }
 
 func (s *Server) Run() error {
-	// Create a new TikTokDB
-	db := tiktokdb.New(s.dbPath)
-
 	// Open the TikTokDB
-	if err := db.Open(); err != nil {
+	if err := s.scanner.DB.Open(); err != nil {
 		return err
 	}
-	defer db.Close()
-
-	// Create a new Scanner
-	scanner := scanner.New(db, s.scraper)
+	defer s.scanner.DB.Close()
 
 	// Run the server
-	return s.runWithSignalHandling(scanner)
+	return s.runWithSignalHandling()
 }
 
-func (s *Server) runWithSignalHandling(scanner *scanner.Client) error {
+func (s *Server) runWithSignalHandling() error {
 	// Create a channel to listen for os signals
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
@@ -64,7 +56,7 @@ func (s *Server) runWithSignalHandling(scanner *scanner.Client) error {
 		os.Exit(0)
 	}()
 
-	if err := s.UpdateAllDaily(scanner); err != nil {
+	if err := s.UpdateAllDaily(); err != nil {
 		log.Printf("Update failed: %s", err)
 		return err
 	}
@@ -72,12 +64,12 @@ func (s *Server) runWithSignalHandling(scanner *scanner.Client) error {
 	return nil
 }
 
-func (s *Server) UpdateAllDaily(scanner *scanner.Client) error {
+func (s *Server) UpdateAllDaily() error {
 	ticker := time.NewTicker(24 * time.Hour)
 	defer ticker.Stop()
 
 	for {
-		if err := s.UpdateAllOnce(scanner); err != nil {
+		if err := s.UpdateAllOnce(); err != nil {
 			return err
 		}
 
@@ -86,14 +78,19 @@ func (s *Server) UpdateAllDaily(scanner *scanner.Client) error {
 	}
 }
 
-func (s *Server) UpdateAllOnce(scanner *scanner.Client) error {
+func (s *Server) UpdateAllOnce() error {
 	// For all users, update them
 	for _, userID := range s.userIds {
-		if err := scanner.Update(userID); err != nil {
+		if err := s.scanner.Update(userID); err != nil {
 			return err
 		}
 
-		log.Printf("Updated user %s", userID)
+		user, err := s.scanner.DB.GetUser(userID)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("Updated user @%s #%s", user.UniqueID, userID)
 	}
 
 	return nil
