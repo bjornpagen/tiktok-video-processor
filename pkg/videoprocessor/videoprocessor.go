@@ -13,14 +13,14 @@ import (
 )
 
 type VideoProcessor struct {
-	Storer storer.Storer
-	path   string
+	Storer  storer.Storer
+	tmpPath string
 }
 
 func New(s storer.Storer) *VideoProcessor {
 	return &VideoProcessor{
-		Storer: s,
-		path:   "/tmp/videoprocessor-temporary",
+		Storer:  s,
+		tmpPath: "/tmp/videoprocessor-temporary",
 	}
 }
 
@@ -28,14 +28,14 @@ func (vp *VideoProcessor) ProcessVideo(mediaURL string) (string, error) {
 	outFile := AddTimestampToFilename("video.mp4")
 
 	// Create vp.path if it doesn't exist
-	if _, err := os.Stat(vp.path); os.IsNotExist(err) {
-		err = os.MkdirAll(vp.path, os.ModePerm)
+	if _, err := os.Stat(vp.tmpPath); os.IsNotExist(err) {
+		err = os.MkdirAll(vp.tmpPath, os.ModePerm)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	outFileFull := filepath.Join(vp.path, outFile)
+	outFileFull := filepath.Join(vp.tmpPath, outFile)
 
 	dl := downloader.New()
 	dl.DownloadVideo(mediaURL, outFileFull)
@@ -65,15 +65,15 @@ func AddTimestampToFilename(filename string) string {
 func GenerateOverlayComment() error {
 	c := comment.NewCommentData("shit", "Write any shitty garbage comment and see what happens 😁")
 	cb := comment.NewCommentBuilder()
-	err := cb.Start(context.TODO())
+	ctx := context.Background()
+	err := cb.Start(ctx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	err = cb.UpdateComment(c)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cb.DownloadComment()
-
-	panic("UNFINISHED")
+	return nil
 }

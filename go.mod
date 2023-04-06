@@ -14,7 +14,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/mafredri/cdp v0.34.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
-	golang.org/x/sys v0.2.0 // indirect
+	github.com/mattn/go-isatty v0.0.18 // indirect
+	golang.org/x/sys v0.7.0 // indirect
 	wellquite.org/actors v0.0.0-20220718102711-d11619d86e33 // indirect
 )
