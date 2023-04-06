@@ -3,6 +3,7 @@ package videoprocessor
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -79,6 +80,7 @@ func GenerateOverlayComment() error {
 		return err
 	}
 	cb.DownloadComment()
+	log.Println("fuck2")
 	time.Sleep(1 * time.Second)
 	return nil
 }
