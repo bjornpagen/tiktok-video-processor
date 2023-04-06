@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"time"
 
@@ -63,24 +64,57 @@ func AddTimestampToFilename(filename string) string {
 	return newFilename
 }
 
-func GenerateOverlayComment() error {
-	c := comment.NewCommentData("shit", "Write any shitty garbage comment and see what happens 😁")
+func GenerateOverlayComment(username, commentText string, storer storer.Storer) (string, error) {
+	destFile := AddTimestampToFilename("comment.png")
+	c := &comment.CommentData{
+		Username: username,
+		Comment:  commentText,
+	}
 	cb := comment.NewCommentBuilder()
 	ctx := context.Background()
 	defer ctx.Done()
 	err := cb.Start()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = cb.UpdateComment(c)
 	if err != nil {
-		return err
+		return "", err
 	}
 	cb.DownloadComment()
 	time.Sleep(1 * time.Second)
 	for i := 0; i < 100; i++ {
 		chrome.Cleanup()
 	}
-	return nil
+
+	// get the current user
+	u, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+
+	// locate the Chrome downloads directory
+	downloadsDir := filepath.Join(u.HomeDir, "Downloads")
+	if _, err := os.Stat(downloadsDir); os.IsNotExist(err) {
+		return "", err
+	}
+
+	// specify the file to move
+	filename := "Comment.png"
+	srcPath := filepath.Join(downloadsDir, filename)
+	tmpPath := filepath.Join("/tmp", destFile)
+
+	err = os.Rename(srcPath, tmpPath)
+	if err != nil {
+		return "", err
+	}
+
+	finPath, err := storer.Store(tmpPath)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println("File moved successfully.")
+	return finPath, nil
 }
