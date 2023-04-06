@@ -3,7 +3,7 @@ module github.com/bjornpagen/tiktok-video-processor
 go 1.20
 
 require (
-	github.com/bjornpagen/goplay v0.0.0-20230406144352-2666af43f315
+	github.com/bjornpagen/goplay v0.0.0-20230406150250-ce71e2403076
 	github.com/rs/zerolog v1.29.0
 	go.uber.org/ratelimit v0.2.0
 	wellquite.org/golmdb v0.0.0-20221218163858-4bf6dfb536d2
