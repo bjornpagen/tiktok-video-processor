@@ -1,7 +1,6 @@
 package comment
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -29,8 +28,8 @@ func NewCommentBuilder() *CommentBuilder {
 	return &CommentBuilder{}
 }
 
-func (cb *CommentBuilder) Start(ctx context.Context) error {
-	c, err := chrome.New(ctx)
+func (cb *CommentBuilder) Start() error {
+	c, err := chrome.New()
 	if err != nil {
 		return err
 	}

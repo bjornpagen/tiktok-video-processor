@@ -8,6 +8,8 @@ github.com/bjornpagen/goplay v0.0.0-20230406150250-ce71e2403076 h1:m62XHmCpgTdTk
 github.com/bjornpagen/goplay v0.0.0-20230406150250-ce71e2403076/go.mod h1:FchrJ/joBg7pZZyLhmIbLoRWTVc4zh0mG10ONQK4ya4=
 github.com/bjornpagen/goplay v0.0.0-20230406150457-ed66ed22d712 h1:N8wTG4OFZCQMgU3BECYhW13zXm5vQKG0OvHWNu0y41o=
 github.com/bjornpagen/goplay v0.0.0-20230406150457-ed66ed22d712/go.mod h1:FchrJ/joBg7pZZyLhmIbLoRWTVc4zh0mG10ONQK4ya4=
+github.com/bjornpagen/goplay v0.0.0-20230406151025-d9645033dadf h1:NagPcLia0PzqpWVM+YtDb3sJRQpLX5smAoSDqagNaXA=
+github.com/bjornpagen/goplay v0.0.0-20230406151025-d9645033dadf/go.mod h1:FchrJ/joBg7pZZyLhmIbLoRWTVc4zh0mG10ONQK4ya4=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/coreos/go-systemd/v22 v22.3.3-0.20220203105225-a9a7ef127534/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
