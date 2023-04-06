@@ -1,7 +1,5 @@
 github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 h1:MzBOUgng9orim59UnfUTLRjMpd09C5uEVQ6RPGeCaVI=
 github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129/go.mod h1:rFgpPQZYZ8vdbc+48xibu8ALc3yeyd64IhHS+PU6Yyg=
-github.com/bjornpagen/goplay v0.0.0-20230406135922-04e72a1b183f h1:1zcs10rO95ZMZWgrKQhy+Org3bROu9TApwH2sYM1DNU=
-github.com/bjornpagen/goplay v0.0.0-20230406135922-04e72a1b183f/go.mod h1:FchrJ/joBg7pZZyLhmIbLoRWTVc4zh0mG10ONQK4ya4=
 github.com/bjornpagen/goplay v0.0.0-20230406143005-46ef4b8c3302 h1:3Ben/6FAKS89elSQZZm/NR6mLuvPxWuE9hUeFpFtHHY=
 github.com/bjornpagen/goplay v0.0.0-20230406143005-46ef4b8c3302/go.mod h1:FchrJ/joBg7pZZyLhmIbLoRWTVc4zh0mG10ONQK4ya4=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
