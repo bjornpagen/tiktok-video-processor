@@ -1,11 +1,13 @@
 package videoprocessor
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/bjornpagen/tiktok-video-processor/pkg/comment"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/downloader"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/storer"
 )
@@ -58,4 +60,20 @@ func AddTimestampToFilename(filename string) string {
 	timestamp := time.Now().UnixNano()
 	newFilename := fmt.Sprintf("%s-%d%s", basename, timestamp, ext)
 	return newFilename
+}
+
+func GenerateOverlayComment() error {
+	c := comment.NewCommentData("shit", "Write any shitty garbage comment and see what happens 😁")
+	cb := comment.NewCommentBuilder()
+	err := cb.Start(context.TODO())
+	if err != nil {
+		panic(err)
+	}
+	err = cb.UpdateComment(c)
+	if err != nil {
+		panic(err)
+	}
+	cb.DownloadComment()
+
+	panic("UNFINISHED")
 }
