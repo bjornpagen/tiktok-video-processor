@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/bjornpagen/goplay/pkg/chrome"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/comment"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/downloader"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/storer"
@@ -71,6 +72,8 @@ func GenerateOverlayComment() error {
 	if err != nil {
 		return err
 	}
+	defer chrome.Cleanup()
+
 	err = cb.UpdateComment(c)
 	if err != nil {
 		return err

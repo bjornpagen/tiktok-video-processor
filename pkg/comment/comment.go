@@ -30,11 +30,11 @@ func NewCommentBuilder() *CommentBuilder {
 }
 
 func (cb *CommentBuilder) Start(ctx context.Context) error {
-	chrome, err := chrome.New(ctx)
+	c, err := chrome.New(ctx)
 	if err != nil {
 		return err
 	}
-	cb.Chrome = chrome
+	cb.Chrome = c
 
 	err = cb.Chrome.Start()
 	if err != nil {
