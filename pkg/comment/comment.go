@@ -21,7 +21,7 @@ func NewCommentData(username, comment string) *CommentData {
 }
 
 type CommentBuilder struct {
-	Chrome *chrome.Browser
+	c *chrome.Browser
 }
 
 func NewCommentBuilder() *CommentBuilder {
@@ -33,14 +33,14 @@ func (cb *CommentBuilder) Start() error {
 	if err != nil {
 		return err
 	}
-	cb.Chrome = c
+	cb.c = c
 
-	err = cb.Chrome.Start()
+	err = cb.c.Start()
 	if err != nil {
 		return err
 	}
 
-	err = cb.Chrome.Navigate("https://tokcomment.com")
+	err = cb.c.Navigate("https://tokcomment.com")
 	if err != nil {
 		return err
 	}
@@ -49,9 +49,10 @@ func (cb *CommentBuilder) Start() error {
 }
 
 func (cb *CommentBuilder) UpdateComment(cd *CommentData) error {
-	updateUsername := fmt.Sprintf(`document.getElementById("resultName").innerHTML = "%s"`, cd.Username)
+	upperText := fmt.Sprintf(`Reply to %s's comment`, cd.Username)
+	updateUsername := fmt.Sprintf(`document.getElementById("resultName").innerHTML = "%s"`, upperText)
 	updateComment := fmt.Sprintf(`document.getElementById("resultComment").innerHTML = "%s"`, cd.Comment)
-	_, err := cb.Chrome.Evaluate(strings.Join([]string{updateUsername, updateComment}, ";"))
+	_, err := cb.c.Evaluate(strings.Join([]string{updateUsername, updateComment}, ";"))
 	if err != nil {
 		return err
 	}
@@ -60,7 +61,7 @@ func (cb *CommentBuilder) UpdateComment(cd *CommentData) error {
 }
 
 func (cb *CommentBuilder) DownloadComment() error {
-	_, err := cb.Chrome.Evaluate("onDownloadClick()")
+	_, err := cb.c.Evaluate("onDownloadClick()")
 	if err != nil {
 		return err
 	}

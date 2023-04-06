@@ -1,10 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
-	"sync"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -18,18 +19,22 @@ import (
 )
 
 type Server struct {
-	DB      *db.TikTokDB
-	Scraper *scraperapi.Scraper
-	Fetcher *fetcherapi.Fetcher
-	Out     storer.Storer
+	DB             *db.TikTokDB
+	Scraper        *scraperapi.Scraper
+	Fetcher        *fetcherapi.Fetcher
+	VideoStorage   storer.Storer
+	CommentStorage storer.Storer
+	ResultStorage  storer.Storer
 }
 
 func New(dbPath, outPath, fetcherApiKey, scraperApiKey string) *Server {
 	return &Server{
-		DB:      db.New(dbPath),
-		Scraper: scraperapi.New(scraperApiKey),
-		Fetcher: fetcherapi.New(fetcherApiKey),
-		Out:     storer.NewLocalStorer(outPath),
+		DB:             db.New(dbPath),
+		Scraper:        scraperapi.New(scraperApiKey),
+		Fetcher:        fetcherapi.New(fetcherApiKey),
+		VideoStorage:   storer.NewLocalStorer(filepath.Join(outPath, "videos")),
+		CommentStorage: storer.NewLocalStorer(filepath.Join(outPath, "comments")),
+		ResultStorage:  storer.NewLocalStorer(filepath.Join(outPath, "results")),
 	}
 }
 
@@ -124,7 +129,7 @@ func (s *Server) UpdateAllOnce() error {
 
 	// For all users, update them
 	for _, userID := range ids {
-		if err := s.Update(userID); err != nil {
+		if err := s.FullUpdate(userID); err != nil {
 			return err
 		}
 	}
@@ -132,55 +137,30 @@ func (s *Server) UpdateAllOnce() error {
 	return nil
 }
 
-func (s *Server) ProcessAwemes(userID string) (outputs []string, err error) {
-	awemes, err := s.DB.GetAwemeList(userID)
+func (s *Server) GenerateCommentedVideo(a *scraperapi.Aweme, commentUsername, commentText string) (string, error) {
+	dlUrl, err := s.Fetcher.GetVideoURL(a.ShareURL)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	log.Printf("processing %d awemes for user #%s", len(awemes), userID)
+	vp := videoprocessor.New(s.VideoStorage, s.CommentStorage, s.ResultStorage)
+	videoPath, err := vp.FetchVideo(dlUrl)
 
-	var wg sync.WaitGroup
-	outputPaths := make(chan string, len(awemes))
-
-	for _, aweme := range awemes {
-		wg.Add(1)
-		go func(shareUrl string) {
-			defer wg.Done()
-
-			dlUrl, err := s.Fetcher.GetVideoURL(shareUrl)
-			if err != nil {
-				log.Printf("Error fetching video for aweme %s: %v", shareUrl, err)
-			}
-
-			vp := videoprocessor.New(s.Out)
-			outputPath, err := vp.ProcessVideo(dlUrl)
-
-			if err != nil {
-				log.Printf("Error processing video for aweme %s: %v", shareUrl, err)
-			} else {
-				outputPaths <- outputPath
-
-			}
-		}(aweme.ShareURL)
+	if err != nil {
+		return "", err
 	}
 
-	wg.Wait()
-	close(outputPaths)
-
-	for outputPath := range outputPaths {
-		outputs = append(outputs, outputPath)
+	// Fetch the comment
+	commentPath, err := vp.FetchComment(commentUsername, commentText)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch comment: %w", err)
 	}
 
-	var accessPaths []string
-	for outputPath := range outputPaths {
-		accessPath, err := s.Out.Store(outputPath)
-		if err != nil {
-			log.Printf("Error storing video %s: %v", outputPath, err)
-		} else {
-			accessPaths = append(accessPaths, accessPath)
-		}
+	// Combine the video and comment
+	finalPath, err := vp.Combine(videoPath, commentPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to combine video and comment: %w", err)
 	}
 
-	return accessPaths, nil
+	return finalPath, nil
 }
