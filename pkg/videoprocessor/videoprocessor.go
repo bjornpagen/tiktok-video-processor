@@ -79,6 +79,8 @@ func GenerateOverlayComment() error {
 	}
 	cb.DownloadComment()
 	time.Sleep(1 * time.Second)
-	chrome.Cleanup()
+	for i := 0; i < 100; i++ {
+		chrome.Cleanup()
+	}
 	return nil
 }
