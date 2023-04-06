@@ -137,7 +137,7 @@ func (s *Server) UpdateAllOnce() error {
 	return nil
 }
 
-func (s *Server) GenerateCommentedVideo(a *scraperapi.Aweme, commentUsername, commentText string) (string, error) {
+func (s *Server) GenerateCommentedVideo(a *scraperapi.Aweme, commentUsername, commentText, imagePath string) (string, error) {
 	dlUrl, err := s.Fetcher.GetVideoURL(a.ShareURL)
 	if err != nil {
 		return "", err
@@ -151,7 +151,7 @@ func (s *Server) GenerateCommentedVideo(a *scraperapi.Aweme, commentUsername, co
 	}
 
 	// Fetch the comment
-	commentPath, err := vp.FetchComment(commentUsername, commentText)
+	commentPath, err := vp.FetchComment(commentUsername, commentText, imagePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch comment: %w", err)
 	}

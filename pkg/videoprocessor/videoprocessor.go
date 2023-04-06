@@ -67,11 +67,12 @@ func (vp *VideoProcessor) FetchVideo(mediaURL string) (string, error) {
 	return s, nil
 }
 
-func (vp *VideoProcessor) FetchComment(username, commentText string) (string, error) {
+func (vp *VideoProcessor) FetchComment(username, commentText, imagePath string) (string, error) {
 	err := func() error {
 		c := &comment.CommentData{
-			Username: username,
-			Comment:  commentText,
+			Username:  username,
+			Comment:   commentText,
+			ImagePath: imagePath,
 		}
 		cb := comment.NewCommentBuilder()
 
