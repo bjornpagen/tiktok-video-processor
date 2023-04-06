@@ -66,6 +66,7 @@ func GenerateOverlayComment() error {
 	c := comment.NewCommentData("shit", "Write any shitty garbage comment and see what happens 😁")
 	cb := comment.NewCommentBuilder()
 	ctx := context.Background()
+	defer ctx.Done()
 	err := cb.Start(ctx)
 	if err != nil {
 		return err
@@ -75,5 +76,6 @@ func GenerateOverlayComment() error {
 		return err
 	}
 	cb.DownloadComment()
+	time.Sleep(1 * time.Second)
 	return nil
 }
