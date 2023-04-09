@@ -14,6 +14,7 @@ import (
 	"github.com/bjornpagen/goplay/pkg/chrome"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/comment"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/downloader"
+	"github.com/bjornpagen/tiktok-video-processor/pkg/metadata"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/storer"
 )
 
@@ -174,8 +175,10 @@ func (vp *VideoProcessor) Combine(videoPath, commentPath string) (string, error)
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to combine video and comment: %w", err)
 	}
-
 	defer os.Remove(outputPath)
+
+	// Edit metadata
+	metadata.GenerateMetadataAndWriteToFile(outputPath)
 
 	// Return the output file path
 	s, err := vp.ResultStorer.Store(outputPath)
@@ -188,7 +191,6 @@ func (vp *VideoProcessor) Combine(videoPath, commentPath string) (string, error)
 
 func getVideoDimensions(videoPath string) (int, int, error) {
 	cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", videoPath)
-
 	output, err := cmd.Output()
 	if err != nil {
 		return 0, 0, err
