@@ -122,6 +122,7 @@ func NewMetadata(videoPath string) (*Metadata, error) {
 		fmt.Println("Error converting denominator:", err)
 		return nil, err
 	}
+	// TODO: this is absolutely not how you calculate the x and y resolution
 	xResolution := int64(numerator)
 	yResolution := int64(denominator)
 
