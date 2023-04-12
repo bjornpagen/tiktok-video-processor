@@ -122,9 +122,11 @@ func NewMetadata(videoPath string) (*Metadata, error) {
 		fmt.Println("Error converting denominator:", err)
 		return nil, err
 	}
-	// TODO: this is absolutely not how you calculate the x and y resolution
-	xResolution := int64(numerator)
-	yResolution := int64(denominator)
+
+	// Calculate x and y resolution based on the display aspect ratio and the given image width and height
+	aspectRatio := float64(numerator) / float64(denominator)
+	xResolution := int64(float64(imageHeight) * aspectRatio)
+	yResolution := imageHeight
 
 	frameRate := videoStream["avg_frame_rate"].(string)
 	split = strings.Split(frameRate, "/")
@@ -179,6 +181,7 @@ func ConvertTimeToExifTime(t time.Time) string {
 
 func WriteMetadataToFile(metadata *Metadata, path string) error {
 	tmp := ".__temp_data.mp4"
+	defer os.Remove(tmp)
 
 	// Copy the video to a temporary file
 	copyCmd := exec.Command("cp", path, tmp)
@@ -218,6 +221,7 @@ func WriteMetadataToFile(metadata *Metadata, path string) error {
 		fmt.Sprintf("-Rotation=%d", metadata.Rotation),
 		tmp)
 	err = addMetadataCmd.Run()
+	defer os.Remove(tmp + "_original")
 	if err != nil {
 		return fmt.Errorf("error adding metadata: %w", err)
 	}
@@ -227,10 +231,6 @@ func WriteMetadataToFile(metadata *Metadata, path string) error {
 		return fmt.Errorf("error renaming temporary output file: %w", err)
 	}
 
-	// Clean up temporary files
-	os.Remove(tmp)
-	os.Remove(tmp + "_original")
-
 	return nil
 }
 
@@ -238,11 +238,6 @@ func GenerateMetadataAndWriteToFile(path string) error {
 	metadata, err := NewMetadata(path)
 	if err != nil {
 		return fmt.Errorf("error getting metadata: %w", err)
-	}
-
-	err = ReencodeVideo(path)
-	if err != nil {
-		return fmt.Errorf("error reencoding video: %w", err)
 	}
 
 	err = WriteMetadataToFile(metadata, path)
@@ -258,6 +253,7 @@ func ReencodeVideo(path string) error {
 
 	// Create a temporary file
 	tmp := ".__temp_data.mp4"
+	defer os.Remove(tmp)
 
 	// Reencode the video
 	reencodeCmd := exec.Command("ffmpeg",
@@ -281,9 +277,6 @@ func ReencodeVideo(path string) error {
 	if err != nil {
 		return fmt.Errorf("error copying video to original file: %w", err)
 	}
-
-	// Clean up temporary files
-	os.Remove(tmp)
 
 	return nil
 }
