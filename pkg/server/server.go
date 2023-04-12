@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
@@ -199,13 +200,19 @@ func (s *Server) FetchAllVideos(userID string) error {
 		return err
 	}
 
-	// For each aweme, fetch the video
+	// Let's do it concurrently instead.
+	var wg sync.WaitGroup
 	for _, a := range awemes {
-		_, err := s.FetchVideo(&a)
-		if err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(a scraperapi.Aweme) {
+			defer wg.Done()
+			_, err := s.FetchVideo(&a)
+			if err != nil {
+				log.Printf("failed to fetch video: %s", err)
+			}
+		}(a)
 	}
+	wg.Wait()
 
 	return nil
 }
