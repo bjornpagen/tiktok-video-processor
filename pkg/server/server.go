@@ -146,7 +146,6 @@ func (s *Server) GenerateCommentedVideo(a *scraperapi.Aweme, commentUsername, co
 
 	vp := videoprocessor.New(s.VideoStorage, s.CommentStorage, s.ResultStorage)
 	videoPath, err := vp.FetchVideo(dlUrl)
-
 	if err != nil {
 		return "", err
 	}
@@ -173,4 +172,40 @@ func (s *Server) GenerateCommentedVideo(a *scraperapi.Aweme, commentUsername, co
 	metadata.GenerateMetadataAndWriteToFile(finalPath)
 
 	return finalPath, nil
+}
+
+func (s *Server) FetchVideo(a *scraperapi.Aweme) (string, error) {
+	dlUrl, err := s.Fetcher.GetVideoURL(a.ShareURL)
+	if err != nil {
+		return "", err
+	}
+
+	vp := videoprocessor.New(s.VideoStorage, s.CommentStorage, s.ResultStorage)
+	videoPath, err := vp.FetchVideo(dlUrl)
+	if err != nil {
+		return "", err
+	}
+
+	// Edit metadata
+	metadata.GenerateMetadataAndWriteToFile(videoPath)
+
+	return videoPath, nil
+}
+
+func (s *Server) FetchAllVideos(userID string) error {
+	// Fetch all the awemes for the user
+	awemes, err := s.DB.GetAwemeList(userID)
+	if err != nil {
+		return err
+	}
+
+	// For each aweme, fetch the video
+	for _, a := range awemes {
+		_, err := s.FetchVideo(&a)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
