@@ -14,7 +14,6 @@ import (
 	"github.com/bjornpagen/goplay/pkg/chrome"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/comment"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/downloader"
-	"github.com/bjornpagen/tiktok-video-processor/pkg/metadata"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/storer"
 )
 
@@ -176,9 +175,6 @@ func (vp *VideoProcessor) Combine(videoPath, commentPath string) (string, error)
 		return "", fmt.Errorf("failed to combine video and comment: %w", err)
 	}
 	defer os.Remove(outputPath)
-
-	// Edit metadata
-	metadata.GenerateMetadataAndWriteToFile(outputPath)
 
 	// Return the output file path
 	s, err := vp.ResultStorer.Store(outputPath)

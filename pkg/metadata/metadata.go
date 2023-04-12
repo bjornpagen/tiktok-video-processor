@@ -229,6 +229,7 @@ func WriteMetadataToFile(metadata *Metadata, path string) error {
 
 	// Clean up temporary files
 	os.Remove(tmp)
+	os.Remove(tmp + "_original")
 
 	return nil
 }

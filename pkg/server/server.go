@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bjornpagen/tiktok-video-processor/pkg/metadata"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/server/db"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/storer"
 	"github.com/bjornpagen/tiktok-video-processor/pkg/tiktok/fetcherapi"
@@ -150,6 +151,12 @@ func (s *Server) GenerateCommentedVideo(a *scraperapi.Aweme, commentUsername, co
 		return "", err
 	}
 
+	// TODO: crop video
+
+	// TODO: change contrast and colors
+
+	// TODO: strip audio
+
 	// Fetch the comment
 	commentPath, err := vp.FetchComment(commentUsername, commentText, imagePath)
 	if err != nil {
@@ -161,6 +168,9 @@ func (s *Server) GenerateCommentedVideo(a *scraperapi.Aweme, commentUsername, co
 	if err != nil {
 		return "", fmt.Errorf("failed to combine video and comment: %w", err)
 	}
+
+	// Edit metadata
+	metadata.GenerateMetadataAndWriteToFile(finalPath)
 
 	return finalPath, nil
 }
