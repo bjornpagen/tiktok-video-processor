@@ -203,13 +203,15 @@ func (vp *VideoProcessor) Crop(videoPath string) error {
 	sharpness := -0.5 + rand.Float64()
 
 	// Prepare output video file path
-	outputVideoPath := videoPath + ".tmp"
+	outputVideoPath := videoPath + ".tmp.mp4"
 
 	// Construct ffmpeg command
-	cmd := exec.Command("ffmpeg", "-i", videoPath, "-vf",
-		fmt.Sprintf("crop=iw*%d/100:ih*%d/100,rotate=%d*PI/180,eq=gamma_r=%.2f:gamma_g=%.2f:gamma_b=%.2f,unsharp=5:5:%.2f",
+	cmd := exec.Command("ffmpeg",
+		"-i", videoPath,
+		"-vf", fmt.Sprintf("crop=iw*%d/100:ih*%d/100,rotate=%d*PI/180,eq=gamma_r=%.2f:gamma_g=%.2f:gamma_b=%.2f,unsharp=5:5:%.2f",
 			cropPercentage, cropPercentage, rotateDegrees, 1+colorBalance, 1+colorBalance, 1+colorBalance, sharpness),
-		"-c:a", "copy", "-y", outputVideoPath)
+		"-c:a", "copy",
+		"-y", outputVideoPath)
 
 	// Print the commmand for debugging
 	fmt.Println(cmd.String())
