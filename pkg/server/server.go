@@ -262,7 +262,7 @@ func (s *Server) FetchAllVideos(userID string) error {
 		wg.Add(1)
 		go func(a scraperapi.Aweme) {
 			defer wg.Done()
-			_, err := s.FetchVideo(&a)
+			_, err := s.FetchCroppedVideo(&a)
 			if err != nil {
 				log.Printf("failed to fetch video: %s", err)
 			}
