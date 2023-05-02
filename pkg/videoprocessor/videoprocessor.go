@@ -211,6 +211,9 @@ func (vp *VideoProcessor) Crop(videoPath string) error {
 			cropPercentage, cropPercentage, rotateDegrees, 1+colorBalance, 1+colorBalance, 1+colorBalance, sharpness),
 		"-c:a", "copy", outputVideoPath)
 
+	// Print the commmand for debugging
+	fmt.Println(cmd.String())
+
 	// Run the command
 	err := cmd.Run()
 	if err != nil {
