@@ -193,6 +193,33 @@ func (s *Server) FetchVideo(a *scraperapi.Aweme) (string, error) {
 	return videoPath, nil
 }
 
+func (s *Server) FetchCroppedVideo(a *scraperapi.Aweme) (string,  error) {
+	dlUrl, err := s.Fetcher.GetVideoURL(a.ShareURL)
+	if err != nil {
+		return "", err
+	}
+
+	vp := videoprocessor.New(s.VideoStorage, s.CommentStorage, s.ResultStorage)
+	videoPath, err := vp.FetchVideo(dlUrl)
+	if err != nil {
+		return "", err
+	}
+
+	// Crop video
+	err = vp.Crop(videoPath)
+	if err != nil {
+		return "", err
+	}
+
+	// Edit metadata
+	err = metadata.GenerateMetadataAndWriteToFile(videoPath)
+	if err != nil {
+		return "", err
+	}
+
+	return videoPath, nil
+}
+
 func (s *Server) FetchAllVideos(userID string) error {
 	// Fetch all the awemes for the user
 	awemes, err := s.DB.GetAwemeList(userID)
