@@ -3,7 +3,6 @@ package videoprocessor
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/exec"
 	"os/user"
@@ -184,44 +183,6 @@ func (vp *VideoProcessor) Combine(videoPath, commentPath string) (string, error)
 	}
 
 	return s, nil
-}
-
-func (vp *VideoProcessor) Crop(videoPath string) error {
-	// Seed random number generator
-	rand.Seed(time.Now().UnixNano())
-
-	// Randomize color balance slightly (between -0.05 and 0.05)
-	colorBalance := -0.05 + rand.Float64()*0.1
-
-	// Randomize sharpness slightly (between -0.5 and 0.5)
-	sharpness := -0.5 + rand.Float64()
-
-	// Prepare output video file path
-	outputVideoPath := videoPath + ".tmp.mp4"
-
-	// Construct ffmpeg command
-	cmd := exec.Command("ffmpeg",
-		"-i", videoPath,
-		"-vf", fmt.Sprintf("eq=gamma_r=%.2f:gamma_g=%.2f:gamma_b=%.2f,unsharp=5:5:%.2f", 1+colorBalance, 1+colorBalance, 1+colorBalance, sharpness),
-		"-c:a", "copy",
-		"-y", outputVideoPath)
-
-	// Print the commmand for debugging
-	fmt.Println(cmd.String())
-
-	// Run the command
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("error processing video: %v", err)
-	}
-
-	// Move the output file to the original video path
-	err = os.Rename(outputVideoPath, videoPath)
-	if err != nil {
-		return fmt.Errorf("error moving output file: %v", err)
-	}
-
-	return nil
 }
 
 func getVideoDimensions(videoPath string) (int, int, error) {

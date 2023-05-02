@@ -78,7 +78,7 @@ func (s *Server) AddUsername(username string) error {
 	return nil
 }
 
-func (s *Server ) RemoveUsername(username string) error {
+func (s *Server) RemoveUsername(username string) error {
 	userId, err := s.Scraper.FetchUserId(username)
 	if err != nil {
 		return err
@@ -105,7 +105,6 @@ func (s *Server ) RemoveUsername(username string) error {
 
 	return nil
 }
-
 
 func (s *Server) Run() error {
 	// Open the TikTokDB
@@ -222,33 +221,6 @@ func (s *Server) FetchVideo(a *scraperapi.Aweme) (string, error) {
 	return videoPath, nil
 }
 
-func (s *Server) FetchCroppedVideo(a *scraperapi.Aweme) (string,  error) {
-	dlUrl, err := s.Fetcher.GetVideoURL(a.ShareURL)
-	if err != nil {
-		return "", err
-	}
-
-	vp := videoprocessor.New(s.VideoStorage, s.CommentStorage, s.ResultStorage)
-	videoPath, err := vp.FetchVideo(dlUrl)
-	if err != nil {
-		return "", err
-	}
-
-	// Crop video
-	err = vp.Crop(videoPath)
-	if err != nil {
-		return "", err
-	}
-
-	// Edit metadata
-	err = metadata.GenerateMetadataAndWriteToFile(videoPath)
-	if err != nil {
-		return "", err
-	}
-
-	return videoPath, nil
-}
-
 func (s *Server) FetchAllVideos(userID string) error {
 	// Fetch all the awemes for the user
 	awemes, err := s.DB.GetAwemeList(userID)
@@ -262,7 +234,7 @@ func (s *Server) FetchAllVideos(userID string) error {
 		wg.Add(1)
 		go func(a scraperapi.Aweme) {
 			defer wg.Done()
-			_, err := s.FetchCroppedVideo(&a)
+			_, err := s.FetchVideo(&a)
 			if err != nil {
 				log.Printf("failed to fetch video: %s", err)
 			}
