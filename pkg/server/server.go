@@ -78,6 +78,35 @@ func (s *Server) AddUsername(username string) error {
 	return nil
 }
 
+func (s *Server ) RemoveUsername(username string) error {
+	userId, err := s.Scraper.FetchUserId(username)
+	if err != nil {
+		return err
+	}
+
+	// Fetch current userIds, remove the one to be deleted
+	userIds, err := s.DB.GetUserIDList()
+	if err != nil {
+		return err
+	}
+
+	// Check if the userId already exists
+	for i, id := range userIds {
+		if id == userId {
+			userIds = append(userIds[:i], userIds[i+1:]...)
+			break
+		}
+	}
+
+	// Save the new userIds
+	if err := s.DB.SetUserIDList(userIds); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
 func (s *Server) Run() error {
 	// Open the TikTokDB
 	if err := s.DB.Open(); err != nil {
