@@ -190,12 +190,6 @@ func (vp *VideoProcessor) Crop(videoPath string) error {
 	// Seed random number generator
 	rand.Seed(time.Now().UnixNano())
 
-	// Randomly crop video to 90-100% of original size
-	cropPercentage := 90 + rand.Intn(11)
-
-	// Randomly rotate video from -10 to 10 degrees
-	rotateDegrees := -10 + rand.Intn(21)
-
 	// Randomize color balance slightly (between -0.05 and 0.05)
 	colorBalance := -0.05 + rand.Float64()*0.1
 
@@ -208,8 +202,7 @@ func (vp *VideoProcessor) Crop(videoPath string) error {
 	// Construct ffmpeg command
 	cmd := exec.Command("ffmpeg",
 		"-i", videoPath,
-		"-vf", fmt.Sprintf("transpose=dir=%d*PI/180:passthrough=landscape,scale=iw*%d/100:ih*%d/100,crop=in_w:in_h*(1-%d/100),eq=gamma_r=%.2f:gamma_g=%.2f:gamma_b=%.2f,unsharp=5:5:%.2f",
-			rotateDegrees, cropPercentage, cropPercentage, rotateDegrees, 1+colorBalance, 1+colorBalance, 1+colorBalance, sharpness),
+		"-vf", fmt.Sprintf("eq=gamma_r=%.2f:gamma_g=%.2f:gamma_b=%.2f,unsharp=5:5:%.2f", 1+colorBalance, 1+colorBalance, 1+colorBalance, sharpness),
 		"-c:a", "copy",
 		"-y", outputVideoPath)
 
